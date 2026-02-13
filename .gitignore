@@ -1,0 +1,54 @@
+# Android specific
+*.apk
+*.ap_
+*.dex
+*.class
+bin/
+gen/
+out/
+build/
+.gradle/
+
+# Android Studio
+.idea/
+*.iml
+*.iws
+*.ipr
+.DS_Store
+
+# Android resources
+.classpath
+.project
+.settings/
+local.properties
+
+# Gradle
+gradle/wrapper/gradle-wrapper.jar
+.gradle/
+*.jar
+*.war
+*.ear
+
+# Build output
+target/
+dist/
+
+# IDE
+*.swp
+*.swo
+*~
+.vscode/
+.history/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Signing files
+*.jks
+*.keystore
+
+# Temporary files
+*.log
+*.bak
+*.tmp
