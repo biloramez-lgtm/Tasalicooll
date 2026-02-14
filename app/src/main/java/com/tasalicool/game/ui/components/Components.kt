@@ -24,11 +24,15 @@ fun CardComponent(
     isSelected: Boolean = false,
     onCardClick: (() -> Unit)? = null
 ) {
-    val backgroundColor = if (card.suit == Suit.HEARTS || card.suit == Suit.DIAMONDS) 
-        Color(0xFFFFEBEE) else Color(0xFFE8F5E9)
+    val isRed = card.suit == Suit.HEARTS || card.suit == Suit.DIAMONDS
 
-    val borderColor = if (isSelected) MaterialTheme.colorScheme.primary else 
-        if (card.suit == Suit.HEARTS || card.suit == Suit.DIAMONDS) Color.Red else Color.Black
+    val backgroundColor =
+        if (isRed) Color(0xFFFFEBEE) else Color(0xFFE8F5E9)
+
+    val borderColor =
+        if (isSelected) MaterialTheme.colorScheme.primary
+        else if (isRed) Color.Red
+        else Color.Black
 
     Box(
         modifier = modifier
@@ -36,44 +40,106 @@ fun CardComponent(
             .height(90.dp)
             .shadow(4.dp, RoundedCornerShape(8.dp))
             .background(backgroundColor, RoundedCornerShape(8.dp))
-            .border(if (isSelected) 3.dp else 2.dp, borderColor, RoundedCornerShape(8.dp))
-            .clickable(enabled = onCardClick != null) { onCardClick?.invoke() },
+            .border(
+                width = if (isSelected) 3.dp else 2.dp,
+                color = borderColor,
+                shape = RoundedCornerShape(8.dp)
+            )
+            .clickable(enabled = onCardClick != null) {
+                onCardClick?.invoke()
+            },
         contentAlignment = Alignment.Center
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(card.rank.displayName, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-            Text(card.suit.getSymbol(), fontSize = 20.sp)
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = card.rank.displayName,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = card.suit.getSymbol(),
+                fontSize = 20.sp
+            )
         }
     }
 }
 
 @Composable
-fun BidButton(bid: Int, isSelected: Boolean = false, onBidClick: () -> Unit, modifier: Modifier = Modifier) {
+fun BidButton(
+    bid: Int,
+    isSelected: Boolean = false,
+    onBidClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     Button(
         onClick = onBidClick,
-        modifier = modifier.width(56.dp).height(56.dp),
+        modifier = modifier
+            .width(56.dp)
+            .height(56.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = if (isSelected) MaterialTheme.colorScheme.primary else Color(0xFFE0E0E0)
+            containerColor =
+                if (isSelected)
+                    MaterialTheme.colorScheme.primary
+                else
+                    Color(0xFFE0E0E0)
         ),
         shape = RoundedCornerShape(12.dp)
     ) {
-        Text(bid.toString(), fontWeight = FontWeight.Bold, fontSize = 16.sp)
+        Text(
+            text = bid.toString(),
+            fontWeight = FontWeight.Bold,
+            fontSize = 16.sp
+        )
     }
 }
 
 @Composable
-fun Scoreboard(team1Score: Int, team2Score: Int, team1Name: String = "Team 1", team2Name: String = "Team 2") {
+fun Scoreboard(
+    team1Score: Int,
+    team2Score: Int,
+    team1Name: String = "Team 1",
+    team2Name: String = "Team 2"
+) {
     Row(
-        modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp)).padding(16.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                MaterialTheme.colorScheme.surfaceVariant,
+                RoundedCornerShape(12.dp)
+            )
+            .padding(16.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
-            Text(team1Name, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-            Text(team1Score.toString(), style = MaterialTheme.typography.headlineSmall)
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.weight(1f)
+        ) {
+            Text(
+                text = team1Name,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = team1Score.toString(),
+                style = MaterialTheme.typography.headlineSmall
+            )
         }
-        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
-            Text(team2Name, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-            Text(team2Score.toString(), style = MaterialTheme.typography.headlineSmall)
+
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.weight(1f)
+        ) {
+            Text(
+                text = team2Name,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = team2Score.toString(),
+                style = MaterialTheme.typography.headlineSmall
+            )
         }
     }
 }
