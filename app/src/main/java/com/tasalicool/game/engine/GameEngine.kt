@@ -1,193 +1,169 @@
 package com.tasalicool.game.engine
 
 import com.tasalicool.game.model.*
-import com.tasalicool.game.rules.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 
 class GameEngine {
 
-    // ==================== GAME CREATION ====================
+    private val cardRules = CardRulesEngine()
+    private val scoring = ScoringEngine()
+    private val bidding = BiddingEngine()
 
-    fun createGame(team1: Team, team2: Team, dealerIndex: Int = 0): Game {
+    private val _gameState = MutableStateFlow<Game?>(null)
+    val gameState: StateFlow<Game?> = _gameState
+
+    private val _error = MutableStateFlow<String?>(null)
+    val error: StateFlow<String?> = _error
+
+    /* ======================= INIT ======================= */
+
+    fun initializeGame(
+        team1: Team,
+        team2: Team,
+        dealerIndex: Int = 0
+    ) {
         val players = listOf(
             team1.player1,
-            team1.player2,
             team2.player1,
+            team1.player2,
             team2.player2
         )
 
-        return Game(
+        val game = Game(
             team1 = team1,
             team2 = team2,
             players = players,
             dealerIndex = dealerIndex,
-            currentPlayerIndex = rightOfDealer(dealerIndex),
-            gamePhase = GamePhase.DEALING,
-            biddingPhase = BiddingPhase.WAITING
+            currentPlayerToPlayIndex = (dealerIndex + 1) % 4
+        )
+
+        dealCards(game)
+        _gameState.value = game
+    }
+
+    fun initializeDefaultGame(team1Name: String, team2Name: String) {
+        val p1 = Player(0, "$team1Name-1")
+        val p2 = Player(1, "$team2Name-1", isAI = true)
+        val p3 = Player(2, "$team1Name-2")
+        val p4 = Player(3, "$team2Name-2", isAI = true)
+
+        initializeGame(
+            Team(1, team1Name, p1, p3),
+            Team(2, team2Name, p2, p4)
         )
     }
 
-    private fun rightOfDealer(dealerIndex: Int): Int =
-        (dealerIndex + 1) % 4
-
-    // ==================== ROUND FLOW ====================
-
-    fun startRound(game: Game): Boolean {
-        if (game.isGameOver) return false
-
-        game.currentTrick = 1
-        game.biddingPhase = BiddingPhase.WAITING
-        game.gamePhase = GamePhase.DEALING
-        game.currentPlayerIndex = rightOfDealer(game.dealerIndex)
-
-        game.team1.resetRound()
-        game.team2.resetRound()
-        game.tricks.clear()
-
-        return true
+    fun restartGame() {
+        _gameState.value?.let {
+            it.resetForNewRound()
+            dealCards(it)
+            _gameState.value = it
+        }
     }
 
-    // ==================== TURN MANAGEMENT ====================
+    /* ======================= DEAL ======================= */
 
-    private fun ensureTurn(game: Game, playerId: Int): Int? {
-        val index = game.players.indexOfFirst { it.id == playerId }
-        if (index == -1) return null
-        return if (index == game.currentPlayerIndex) index else null
-    }
+    private fun dealCards(game: Game) {
+        val deck = Card.createGameDeck().shuffled()
 
-    private fun advanceTurn(game: Game) {
-        game.currentPlayerIndex = (game.currentPlayerIndex + 1) % 4
-    }
+        game.players.forEach { it.hand.clear() }
 
-    // ==================== PHASE TRANSITIONS ====================
-
-    fun transitionToBidding(game: Game): Boolean {
-        if (!GameRules.canTransition(game.gamePhase, GamePhase.BIDDING)) return false
+        deck.chunked(13).forEachIndexed { i, cards ->
+            game.players[i].hand.addAll(cards)
+            game.players[i].sortHand()
+        }
 
         game.gamePhase = GamePhase.BIDDING
         game.biddingPhase = BiddingPhase.PLAYER1_BIDDING
-        game.currentPlayerIndex = rightOfDealer(game.dealerIndex)
-
-        return true
     }
 
-    private fun transitionToPlaying(game: Game): Boolean {
-        val totalBids = game.players.sumOf { it.bid }
-        val maxScore = maxOf(game.team1.score, game.team2.score)
+    /* ======================= BIDDING ======================= */
 
-        if (!BiddingRules.isTotalBidsValid(totalBids, maxScore)) {
-            return startRound(game)
-        }
-
-        game.gamePhase = GamePhase.PLAYING
-        game.currentTrick = 1
-        game.currentPlayerIndex = rightOfDealer(game.dealerIndex)
-
-        return true
-    }
-
-    private fun transitionToRoundEnd(game: Game): Boolean {
-        game.gamePhase = GamePhase.ROUND_END
-        calculateRoundScores(game)
-        return transitionToNextRoundOrEnd(game)
-    }
-
-    private fun transitionToNextRoundOrEnd(game: Game): Boolean {
-        if (game.team1.isWinner) {
-            endGame(game, 1)
-            return true
-        }
-        if (game.team2.isWinner) {
-            endGame(game, 2)
-            return true
-        }
-
-        game.dealerIndex = (game.dealerIndex + 1) % 4
-        game.currentRound++
-        return startRound(game)
-    }
-
-    private fun endGame(game: Game, winnerTeamId: Int) {
-        game.gamePhase = GamePhase.GAME_END
-        game.isGameOver = true
-        game.winningTeamId = winnerTeamId
-    }
-
-    // ==================== BIDDING ====================
-
-    fun placeBid(game: Game, playerId: Int, bid: Int): Boolean {
-        if (game.gamePhase != GamePhase.BIDDING) return false
-
-        val playerIndex = ensureTurn(game, playerId) ?: return false
+    fun placeBid(playerIndex: Int, bid: Int): Boolean {
+        val game = _gameState.value ?: return false
         val player = game.players[playerIndex]
 
-        val minimumBid = BiddingRules.getMinimumBid(
+        val minBid = scoring.getMinimumBid(
             maxOf(game.team1.score, game.team2.score)
         )
 
-        if (!BiddingRules.isValidBid(bid, player.hand.size, minimumBid)) return false
+        if (!cardRules.validateBid(bid, player.hand.size, minBid)) {
+            _error.value = "Bid غير صالح"
+            return false
+        }
 
         player.bid = bid
-        advanceTurn(game)
-
-        game.biddingPhase = game.biddingPhase.next()
+        game.advanceBidding()
 
         if (game.biddingPhase == BiddingPhase.COMPLETE) {
-            return transitionToPlaying(game)
+            val total = game.players.sumOf { it.bid }
+            if (total < game.getMinimumTotalBids()) {
+                restartGame()
+            } else {
+                game.gamePhase = GamePhase.PLAYING
+                game.currentPlayerToPlayIndex = game.getRightOfDealerIndex()
+            }
         }
 
+        _gameState.value = game
         return true
     }
 
-    // ==================== PLAYING ====================
+    /* ======================= PLAY ======================= */
 
-    fun playCard(game: Game, playerId: Int, card: Card): Boolean {
-        if (game.gamePhase != GamePhase.PLAYING) return false
-
-        val playerIndex = ensureTurn(game, playerId) ?: return false
+    fun playCard(playerIndex: Int, card: Card): Boolean {
+        val game = _gameState.value ?: return false
         val player = game.players[playerIndex]
 
-        val trick = game.getOrCreateCurrentTrick()
-
-        if (!PlayRules.canPlayCard(card, player, trick, trick.cards.values.toList()))
+        if (playerIndex != game.currentPlayerToPlayIndex) {
+            _error.value = "مش دورك"
             return false
+        }
 
-        if (!player.removeCard(card)) return false
+        val trick = game.currentTrick()
 
-        trick.addCard(player.id, card)
+        if (!cardRules.canPlayCard(card, player, trick)) {
+            _error.value = "كرت غير مسموح"
+            return false
+        }
+
+        player.removeCard(card)
+        trick.addCard(playerIndex, card)
 
         if (trick.isComplete(4)) {
-            return completeTrick(game, trick)
+            val winner = cardRules.calculateTrickWinner(trick)
+            game.getPlayerById(winner)?.tricksWon++
+            game.currentPlayerToPlayIndex = winner
+
+            if (game.tricks.size == 13) {
+                endRound(game)
+            }
+        } else {
+            game.currentPlayerToPlayIndex = (playerIndex + 1) % 4
         }
 
-        advanceTurn(game)
+        _gameState.value = game
         return true
     }
 
-    private fun completeTrick(game: Game, trick: Trick): Boolean {
-        val winnerId = TrickRules.calculateWinner(trick, TrickRules.getTrumpSuit())
-        if (winnerId == -1) return false
+    /* ======================= ROUND END ======================= */
 
-        trick.winnerId = winnerId
-        val winnerIndex = game.players.indexOfFirst { it.id == winnerId }
+    private fun endRound(game: Game) {
+        game.applyScores(scoring)
 
-        val team = game.getTeamByPlayer(winnerId)
-        team?.addTrickToPlayer(winnerId)
-
-        if (game.currentTrick == GameRules.TOTAL_TRICKS) {
-            return transitionToRoundEnd(game)
+        when {
+            game.team1.isWinner -> game.finish(1)
+            game.team2.isWinner -> game.finish(2)
+            else -> restartGame()
         }
 
-        game.currentTrick++
-        game.currentPlayerIndex = winnerIndex
-        return true
+        _gameState.value = game
     }
 
-    // ==================== SCORE ====================
+    /* ======================= HELPERS ======================= */
 
-    private fun calculateRoundScores(game: Game) {
-        val isAfter30 = maxOf(game.team1.score, game.team2.score) >= 30
-
-        game.team1.applyRoundScore(isAfter30)
-        game.team2.applyRoundScore(isAfter30)
+    fun clearError() {
+        _error.value = null
     }
 }
