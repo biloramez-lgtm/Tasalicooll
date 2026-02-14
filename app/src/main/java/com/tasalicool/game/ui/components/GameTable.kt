@@ -1,6 +1,8 @@
 package com.tasalicool.game.ui.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -21,6 +23,7 @@ fun GameTable(game: Game) {
             .height(300.dp),
         contentAlignment = Alignment.Center
     ) {
+
         // Dealer Button
         Box(
             modifier = Modifier
@@ -30,8 +33,8 @@ fun GameTable(game: Game) {
         ) {
             Text("🎴", fontSize = 40.sp)
         }
-        
-        // Tricks in Center
+
+        // Current Trick Cards
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -39,8 +42,12 @@ fun GameTable(game: Game) {
             horizontalArrangement = Arrangement.spacedBy((-20).dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            game.getCurrentTrick()?.cards?.forEach { (playerId, card) ->
-                Text(card.toString(), fontSize = 12.sp, color = Color.White)
+            game.getCurrentTrick()?.cards?.forEach { (_, card) ->
+                Text(
+                    text = card.toString(),
+                    fontSize = 12.sp,
+                    color = Color.White
+                )
             }
         }
     }
