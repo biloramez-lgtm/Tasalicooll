@@ -1,10 +1,12 @@
 package com.tasalicool.game.multiplayer
 
 import com.tasalicool.game.engine.GameEngine
+import com.tasalicool.game.network.ConnectionState
 import com.tasalicool.game.network.MultiplayerManager
 import com.tasalicool.game.network.NetworkCommand
-import com.tasalicool.game.network.ConnectionState
 import kotlinx.coroutines.*
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
@@ -13,7 +15,12 @@ class MultiplayerGameController(
     private val multiplayerManager: MultiplayerManager
 ) {
 
-    private val scope = CoroutineScope(Dispatchers.IO)
+    // 🔥 نشتغل على Main حتى ما يصير مشاكل UI
+    private val scope =
+        CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+
+    // 🔒 حماية من race condition
+    private val mutex = Mutex()
 
     init {
         observeCommands()
@@ -22,14 +29,18 @@ class MultiplayerGameController(
     private fun observeCommands() {
         scope.launch {
             multiplayerManager.commands.collect { cmd ->
+                mutex.withLock {
 
-                when (multiplayerManager.connectionState.value) {
+                    when (multiplayerManager.connectionState.value) {
 
-                    ConnectionState.HOSTING -> handleAsHost(cmd)
+                        ConnectionState.HOSTING ->
+                            handleAsHost(cmd)
 
-                    ConnectionState.CONNECTED -> handleAsClient(cmd)
+                        ConnectionState.CONNECTED ->
+                            handleAsClient(cmd)
 
-                    else -> Unit
+                        else -> Unit
+                    }
                 }
             }
         }
@@ -52,9 +63,10 @@ class MultiplayerGameController(
             is NetworkCommand.CardPlayed -> {
                 val playerIndex = findPlayerIndex(cmd.playerId)
                 if (playerIndex != -1) {
+
                     val card = engine.gameState.value
                         ?.players?.get(playerIndex)
-                        ?.hand?.find {
+                        ?.hand?.firstOrNull {
                             it.rank.name == cmd.cardRank &&
                             it.suit.name == cmd.cardSuit
                         }
@@ -72,6 +84,7 @@ class MultiplayerGameController(
 
     private fun sendSync() {
         val state = engine.gameState.value ?: return
+
         val serialized = Json.encodeToString(state)
 
         multiplayerManager.broadcast(
@@ -86,11 +99,8 @@ class MultiplayerGameController(
 
     private fun handleAsClient(cmd: NetworkCommand) {
 
-        when (cmd) {
-            is NetworkCommand.SyncState -> {
-                engine.onNetworkCommand(cmd)
-            }
-            else -> Unit
+        if (cmd is NetworkCommand.SyncState) {
+            engine.onNetworkCommand(cmd)
         }
     }
 
@@ -101,5 +111,9 @@ class MultiplayerGameController(
             ?.players
             ?.indexOfFirst { it.id.toString() == playerId }
             ?: -1
+    }
+
+    fun clear() {
+        scope.cancel()
     }
 }
