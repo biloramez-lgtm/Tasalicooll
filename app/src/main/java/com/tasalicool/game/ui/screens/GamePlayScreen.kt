@@ -1,7 +1,9 @@
 package com.tasalicool.game.ui.screens
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -14,24 +16,28 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.tasalicool.game.model.*
 import com.tasalicool.game.ui.theme.*
+import kotlinx.coroutines.delay
 
 /**
- * GamePlayScreen - شاشة لعب الأوراق
+ * GamePlayScreen - شاشة لعب الأوراق الكاملة الاحترافية
  * 
- * تعرض:
- * ✅ طاولة اللعبة مع الأوراق الملعوبة
- * ✅ معلومات اللاعبين حول الطاولة
- * ✅ معاينة حية للخدعة الحالية
- * ✅ يد اللاعب الحالي (قابلة للاختيار)
- * ✅ الأوراق الصحيحة فقط
- * ✅ معلومات حالية (رقم الخدعة، البديات، الخدعات)
- * ✅ عداد الوقت (اختياري)
+ * الميزات:
+ * ✅ طاولة لعبة مع الأوراق الملعوبة
+ * ✅ 3 لاعبين حول الطاولة
+ * ✅ معاينة حية للخدعة
+ * ✅ يد اللاعب بجميع الأوراق الصحيحة
+ * ✅ تأثيرات انتقالية سلسة
+ * ✅ مؤشر الدور الحالي
+ * ✅ عرض البديات والخدعات
+ * ✅ أزرار الإجراءات
+ * ✅ معلومات حالية دقيقة
  */
 @Composable
 fun GamePlayScreen(
@@ -39,9 +45,18 @@ fun GamePlayScreen(
     currentPlayer: Player,
     validCards: List<Card>,
     onCardPlay: (Card) -> Unit,
-    onConcede: () -> Unit
+    onConcede: () -> Unit,
+    isCurrentTurn: Boolean = true
 ) {
     var selectedCard by remember { mutableStateOf<Card?>(null) }
+    var playAnimation by remember { mutableStateOf(false) }
+    
+    LaunchedEffect(selectedCard) {
+        if (selectedCard != null) {
+            delay(100)
+            playAnimation = true
+        }
+    }
     
     Box(
         modifier = Modifier
@@ -52,7 +67,10 @@ fun GamePlayScreen(
             modifier = Modifier.fillMaxSize()
         ) {
             // ==================== TOP INFO BAR ====================
-            GamePlayTopBar(game, currentPlayer)
+            GamePlayTopBar(game, currentPlayer, isCurrentTurn)
+            
+            // ==================== SCORES DISPLAY ====================
+            ScoresBar(game)
             
             // ==================== MAIN PLAYING AREA ====================
             Box(
@@ -65,6 +83,11 @@ fun GamePlayScreen(
                 
                 // Players Around Table
                 PlayersPlayingLayout(game, currentPlayer)
+                
+                // Current Turn Indicator
+                if (isCurrentTurn) {
+                    CurrentTurnIndicator()
+                }
             }
             
             // ==================== BOTTOM PLAYING INTERFACE ====================
@@ -72,6 +95,7 @@ fun GamePlayScreen(
                 currentPlayer = currentPlayer,
                 validCards = validCards,
                 selectedCard = selectedCard,
+                isCurrentTurn = isCurrentTurn,
                 onCardSelected = { card ->
                     selectedCard = card
                     onCardPlay(card)
@@ -85,73 +109,247 @@ fun GamePlayScreen(
 // ==================== TOP INFO BAR ====================
 
 @Composable
-private fun GamePlayTopBar(game: Game, currentPlayer: Player) {
+private fun GamePlayTopBar(
+    game: Game,
+    currentPlayer: Player,
+    isCurrentTurn: Boolean
+) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .height(60.dp),
+            .height(70.dp),
         color = BackgroundBlack,
-        shadowElevation = 4.dp
+        shadowElevation = 6.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Left Section - Player Info
+            Column(
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    currentPlayer.name,
+                    color = if (isCurrentTurn) SecondaryGold else TextGray,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(6.dp)
+                            .clip(CircleShape)
+                            .background(if (isCurrentTurn) SuccessGreen else ErrorRed)
+                    )
+                    Text(
+                        if (isCurrentTurn) "Your Turn" else "Waiting",
+                        color = if (isCurrentTurn) SuccessGreen else TextGray,
+                        fontSize = 11.sp
+                    )
+                }
+            }
+            
+            // Center Section - Game Info
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    "Round ${game.currentRound}",
+                    color = TextGray,
+                    fontSize = 10.sp
+                )
+                Text(
+                    "Trick ${game.currentTrick}/13",
+                    color = SecondaryGold,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            
+            // Right Section - Quick Stats
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier.weight(1f)
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Bid Badge
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(PrimaryRed),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                "B",
+                                fontSize = 8.sp,
+                                color = TextGray
+                            )
+                            Text(
+                                "${currentPlayer.bid}",
+                                fontSize = 11.sp,
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    )
+                    
+                    // Tricks Badge
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(BackgroundGreen),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Alignment.Center
+                        ) {
+                            Text(
+                                "T",
+                                fontSize = 8.sp,
+                                color = TextGray
+                            )
+                            Text(
+                                "${currentPlayer.tricksWon}",
+                                fontSize = 11.sp,
+                                color = SecondaryGold,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ==================== SCORES BAR ====================
+
+@Composable
+private fun ScoresBar(game: Game) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(54.dp),
+        color = BackgroundBlack
     ) {
         Row(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Left - Game Info
-            Column(
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    "Round ${game.currentRound}",
-                    fontSize = 11.sp,
-                    color = TextGray
-                )
-                Text(
-                    "Trick ${game.currentTrick}/13",
-                    fontSize = 14.sp,
-                    color = SecondaryGold,
-                    fontWeight = FontWeight.Bold
-                )
-            }
+            // Team 1 Score
+            ScoreItem(
+                teamName = "Team 1",
+                score = game.team1.score,
+                modifier = Modifier.weight(1f)
+            )
             
-            // Center - Bid Info
-            Box(
+            // Divider
+            Divider(
+                color = BorderGray,
                 modifier = Modifier
-                    .background(BackgroundGreen, RoundedCornerShape(8.dp))
-                    .padding(horizontal = 12.dp, vertical = 6.dp)
-            ) {
-                Text(
-                    "Bid: ${currentPlayer.bid} | Won: ${currentPlayer.tricksWon}",
-                    fontSize = 12.sp,
-                    color = TextWhite,
-                    fontWeight = FontWeight.Bold
-                )
-            }
+                    .fillMaxHeight(0.6f)
+                    .width(1.dp)
+            )
             
-            // Right - Status
-            Box(
+            // VS Text
+            Text(
+                "VS",
+                fontSize = 12.sp,
+                color = TextGray,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(horizontal = 8.dp)
+            )
+            
+            // Divider
+            Divider(
+                color = BorderGray,
                 modifier = Modifier
-                    .size(32.dp)
-                    .clip(CircleShape)
-                    .background(
-                        if (game.currentPlayerIndex == game.players.indexOf(currentPlayer))
-                            SecondaryGold
-                        else
-                            Color(0xFF555555)
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    if (game.currentPlayerIndex == game.players.indexOf(currentPlayer))
-                        "●" else "◯",
-                    fontSize = 16.sp,
-                    color = if (game.currentPlayerIndex == game.players.indexOf(currentPlayer))
-                        Color.Black else TextGray
-                )
-            }
+                    .fillMaxHeight(0.6f)
+                    .width(1.dp)
+            )
+            
+            // Team 2 Score
+            ScoreItem(
+                teamName = "Team 2",
+                score = game.team2.score,
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun ScoreItem(
+    teamName: String,
+    score: Int,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier
+    ) {
+        Text(
+            teamName,
+            fontSize = 10.sp,
+            color = TextGray
+        )
+        Text(
+            "$score",
+            fontSize = 20.sp,
+            color = SecondaryGold,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+// ==================== CURRENT TURN INDICATOR ====================
+
+@Composable
+private fun CurrentTurnIndicator() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        contentAlignment = Alignment.BottomEnd
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier
+                .shadow(8.dp, RoundedCornerShape(12.dp))
+                .background(Color.Black.copy(alpha = 0.7f), RoundedCornerShape(12.dp))
+                .padding(12.dp)
+        ) {
+            Text("🎯", fontSize = 32.sp)
+            Text(
+                "Your Turn",
+                fontSize = 12.sp,
+                color = SecondaryGold,
+                fontWeight = FontWeight.Bold
+            )
         }
     }
 }
@@ -165,25 +363,35 @@ private fun GamePlayTable(game: Game, selectedCard: Card?) {
             .fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-        // Dealer Button
+        // Dealer Button (موزع)
         Box(
             modifier = Modifier
-                .size(90.dp)
+                .size(95.dp)
                 .clip(CircleShape)
-                .background(PrimaryRed),
+                .background(PrimaryRed)
+                .shadow(12.dp, CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+                verticalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxSize()
             ) {
-                Text("🎴", fontSize = 40.sp)
-                Text(
-                    "${game.currentTrick}/13",
-                    fontSize = 12.sp,
-                    color = TextWhite,
-                    fontWeight = FontWeight.Bold
-                )
+                Text("🎴", fontSize = 48.sp)
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(Color.White),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        "${game.currentTrick}/13",
+                        fontSize = 10.sp,
+                        color = PrimaryRed,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(4.dp)
+                    )
+                }
             }
         }
         
@@ -193,12 +401,15 @@ private fun GamePlayTable(game: Game, selectedCard: Card?) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth(0.85f)
-                    .padding(horizontal = 40.dp),
-                horizontalArrangement = Arrangement.spacedBy((-24).dp),
+                    .padding(horizontal = 50.dp),
+                horizontalArrangement = Arrangement.spacedBy((-28).dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                trick.cards.forEach { (playerId, card) ->
-                    CardInPlay(card, playerId, game)
+                trick.playOrder.forEach { playerId ->
+                    val card = trick.cards[playerId]
+                    if (card != null) {
+                        CardInPlay(card, playerId, game, selectedCard)
+                    }
                 }
             }
         }
@@ -206,7 +417,12 @@ private fun GamePlayTable(game: Game, selectedCard: Card?) {
 }
 
 @Composable
-private fun CardInPlay(card: Card, playerId: Int, game: Game) {
+private fun CardInPlay(
+    card: Card,
+    playerId: Int,
+    game: Game,
+    selectedCard: Card?
+) {
     val player = game.players.getOrNull(playerId)
     val isCurrentPlayer = game.currentPlayerIndex == playerId
     
@@ -217,16 +433,16 @@ private fun CardInPlay(card: Card, playerId: Int, game: Game) {
         // Card
         Surface(
             modifier = Modifier
-                .width(60.dp)
-                .height(90.dp),
+                .width(62.dp)
+                .height(94.dp),
             color = Color.White,
             shape = RoundedCornerShape(8.dp),
-            shadowElevation = 10.dp
+            shadowElevation = 12.dp
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(4.dp),
+                    .padding(5.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
@@ -246,21 +462,18 @@ private fun CardInPlay(card: Card, playerId: Int, game: Game) {
         
         // Player Badge
         if (player != null) {
-            Box(
-                modifier = Modifier
-                    .height(20.dp)
-                    .background(
-                        if (isCurrentPlayer) SecondaryGold else BackgroundBlack,
-                        RoundedCornerShape(10.dp)
-                    )
-                    .padding(horizontal = 8.dp),
-                contentAlignment = Alignment.Center
+            Surface(
+                modifier = Modifier.height(22.dp),
+                color = if (isCurrentPlayer) SecondaryGold else BackgroundBlack,
+                shape = RoundedCornerShape(10.dp)
             ) {
                 Text(
-                    player.name.take(4),
+                    player.name.take(5),
                     fontSize = 9.sp,
                     color = if (isCurrentPlayer) Color.Black else TextWhite,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 6.dp),
+                    maxLines = 1
                 )
             }
         }
@@ -272,16 +485,14 @@ private fun CardInPlay(card: Card, playerId: Int, game: Game) {
 @Composable
 private fun PlayersPlayingLayout(game: Game, currentPlayer: Player) {
     Box(modifier = Modifier.fillMaxSize()) {
-        // Find indices
         val players = game.players
         val currentIndex = players.indexOf(currentPlayer)
         
-        // Opposite Player
+        // Top Player (Opposite)
         if (currentIndex >= 0) {
             val oppositeIndex = (currentIndex + 2) % 4
             PlayerPlayingPosition(
                 player = players[oppositeIndex],
-                position = "TOP",
                 isCurrent = game.currentPlayerIndex == oppositeIndex,
                 bid = players[oppositeIndex].bid,
                 tricks = players[oppositeIndex].tricksWon,
@@ -294,7 +505,6 @@ private fun PlayersPlayingLayout(game: Game, currentPlayer: Player) {
             val leftIndex = (currentIndex + 1) % 4
             PlayerPlayingPosition(
                 player = players[leftIndex],
-                position = "LEFT",
                 isCurrent = game.currentPlayerIndex == leftIndex,
                 bid = players[leftIndex].bid,
                 tricks = players[leftIndex].tricksWon,
@@ -307,7 +517,6 @@ private fun PlayersPlayingLayout(game: Game, currentPlayer: Player) {
             val rightIndex = (currentIndex + 3) % 4
             PlayerPlayingPosition(
                 player = players[rightIndex],
-                position = "RIGHT",
                 isCurrent = game.currentPlayerIndex == rightIndex,
                 bid = players[rightIndex].bid,
                 tricks = players[rightIndex].tricksWon,
@@ -320,37 +529,43 @@ private fun PlayersPlayingLayout(game: Game, currentPlayer: Player) {
 @Composable
 private fun PlayerPlayingPosition(
     player: Player,
-    position: String,
     isCurrent: Boolean,
     bid: Int,
     tricks: Int,
     modifier: Modifier = Modifier
 ) {
     val backgroundColor by animateColorAsState(
-        targetValue = if (isCurrent) SecondaryGold else Color(0xFF333333),
+        targetValue = if (isCurrent) SecondaryGold else Color(0xFF444444),
         label = "playerBgColor"
+    )
+    
+    val borderColor by animateColorAsState(
+        targetValue = if (isCurrent) SecondaryGold else Color.Transparent,
+        label = "playerBorderColor"
     )
     
     Column(
         modifier = modifier.padding(12.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         // Avatar with Status
         Box(
             modifier = Modifier
-                .size(56.dp)
+                .size(60.dp)
                 .clip(CircleShape)
-                .background(backgroundColor),
+                .background(backgroundColor)
+                .shadow(if (isCurrent) 8.dp else 2.dp, CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Text("👤", fontSize = 32.sp)
             
+            // Status Indicator
             if (isCurrent) {
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
-                        .size(12.dp)
+                        .size(14.dp)
                         .clip(CircleShape)
                         .background(SuccessGreen)
                 )
@@ -362,10 +577,11 @@ private fun PlayerPlayingPosition(
             player.name,
             fontSize = 12.sp,
             color = if (isCurrent) SecondaryGold else TextWhite,
-            fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal
+            fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal,
+            maxLines = 1
         )
         
-        // Bid & Tricks
+        // Bid & Tricks Display
         Row(
             horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -374,7 +590,7 @@ private fun PlayerPlayingPosition(
             Box(
                 modifier = Modifier
                     .size(28.dp)
-                    .clip(CircleShape)
+                    .clip(RoundedCornerShape(6.dp))
                     .background(BackgroundBlack),
                 contentAlignment = Alignment.Center
             ) {
@@ -393,7 +609,7 @@ private fun PlayerPlayingPosition(
             Box(
                 modifier = Modifier
                     .size(28.dp)
-                    .clip(CircleShape)
+                    .clip(RoundedCornerShape(6.dp))
                     .background(BackgroundBlack),
                 contentAlignment = Alignment.Center
             ) {
@@ -415,30 +631,31 @@ private fun GamePlayBottomInterface(
     currentPlayer: Player,
     validCards: List<Card>,
     selectedCard: Card?,
+    isCurrentTurn: Boolean,
     onCardSelected: (Card) -> Unit,
     onConcede: () -> Unit
 ) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .height(130.dp),
+            .height(140.dp),
         color = BackgroundBlack,
         shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
-        shadowElevation = 8.dp
+        shadowElevation = 12.dp
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(8.dp),
+                .padding(12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             // Instruction Text
             Text(
-                "Select a card to play",
+                if (isCurrentTurn) "Select a card to play" else "Waiting for your turn",
                 fontSize = 13.sp,
-                color = TextGray,
-                fontWeight = FontWeight.Normal
+                color = if (isCurrentTurn) TextWhite else TextGray,
+                fontWeight = FontWeight.Bold
             )
             
             // Valid Cards Display
@@ -454,34 +671,35 @@ private fun GamePlayBottomInterface(
                     PlayableCard(
                         card = card,
                         isSelected = card == selectedCard,
-                        onClick = { onCardSelected(card) }
+                        isEnabled = isCurrentTurn,
+                        onClick = { 
+                            if (isCurrentTurn) {
+                                onCardSelected(card)
+                            }
+                        }
                     )
                 }
             }
             
-            // Action Buttons
-            Row(
+            // Action Button
+            Button(
+                onClick = onConcede,
+                enabled = isCurrentTurn,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    .height(38.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = ErrorRed,
+                    disabledContainerColor = Color(0xFF555555)
+                ),
+                shape = RoundedCornerShape(8.dp)
             ) {
-                Button(
-                    onClick = onConcede,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(40.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF666666)
-                    ),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text(
-                        "Concede",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+                Text(
+                    "Concede Game",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
             }
         }
     }
@@ -491,25 +709,32 @@ private fun GamePlayBottomInterface(
 private fun PlayableCard(
     card: Card,
     isSelected: Boolean,
+    isEnabled: Boolean,
     onClick: () -> Unit
 ) {
     val scale by animateDpAsState(
-        targetValue = if (isSelected) 76.dp else 68.dp,
+        targetValue = if (isSelected) 78.dp else 70.dp,
+        animationSpec = tween(200),
         label = "cardScale"
     )
     
     val elevation by animateDpAsState(
-        targetValue = if (isSelected) 12.dp else 4.dp,
+        targetValue = if (isSelected) 14.dp else 4.dp,
         label = "cardElevation"
+    )
+    
+    val bgColor by animateColorAsState(
+        targetValue = if (isEnabled) Color.White else Color(0xFFDDDDDD),
+        label = "cardBg"
     )
     
     Surface(
         modifier = Modifier
-            .width(54.dp)
+            .width(56.dp)
             .height(scale)
             .clip(RoundedCornerShape(6.dp))
-            .clickable(onClick = onClick),
-        color = Color.White,
+            .clickable(enabled = isEnabled, onClick = onClick),
+        color = bgColor,
         shape = RoundedCornerShape(6.dp),
         shadowElevation = elevation
     ) {
@@ -533,9 +758,10 @@ private fun PlayableCard(
             )
             
             if (isSelected) {
+                Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     "✓",
-                    fontSize = 10.sp,
+                    fontSize = 9.sp,
                     color = SuccessGreen,
                     fontWeight = FontWeight.Bold
                 )
@@ -568,7 +794,8 @@ fun GamePlayScreenPreview() {
             Player(id = 2, name = "Partner", bid = 6, tricksWon = 2),
             Player(id = 3, name = "Opponent 2", bid = 8, tricksWon = 3)
         ),
-        currentPlayerIndex = 0
+        currentPlayerIndex = 0,
+        currentTrick = 5
     )
     
     TasalicoolTheme {
@@ -577,7 +804,8 @@ fun GamePlayScreenPreview() {
             currentPlayer = game.players[0],
             validCards = game.players[0].hand.take(5),
             onCardPlay = {},
-            onConcede = {}
+            onConcede = {},
+            isCurrentTurn = true
         )
     }
 }
