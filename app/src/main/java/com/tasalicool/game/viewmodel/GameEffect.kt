@@ -2,26 +2,37 @@ package com.tasalicool.game.viewmodel
 
 sealed class GameEffect {
 
-    /* -------- Navigation -------- */
-    object NavigateToGameOver : GameEffect()
-    object NavigateToLobby : GameEffect()
+    /* ================= NAVIGATION ================= */
 
-    /* -------- UI Feedback -------- */
-    data class ShowSnackbar(val message: String) : GameEffect()
+    object NavigateToGameOver : GameEffect()
+    object NavigateBack : GameEffect()
+
+    /* ================= UI FEEDBACK ================= */
+
+    data class ShowSnackbar(
+        val message: String,
+        val isError: Boolean = false
+    ) : GameEffect()
+
     data class ShowDialog(
         val title: String,
         val message: String
     ) : GameEffect()
 
-    /* -------- Animations -------- */
+    /* ================= GAME VISUALS ================= */
+
     object PlayCardAnimation : GameEffect()
-    object PlayBidAnimation : GameEffect()
+    object DealCardsAnimation : GameEffect()
+    object BiddingAnimation : GameEffect()
 
-    /* -------- Sound / Haptics -------- */
-    object PlayCardSound : GameEffect()
-    object VibrateOnTurn : GameEffect()
+    /* ================= MULTIPLAYER ================= */
 
-    /* -------- Multiplayer -------- */
-    object SendGameStateToPeer : GameEffect()
-    object SyncWithPeer : GameEffect()
+    object PlayerConnected : GameEffect()
+    object PlayerDisconnected : GameEffect()
+    object SyncStarted : GameEffect()
+    object SyncCompleted : GameEffect()
+
+    /* ================= SYSTEM ================= */
+
+    object Vibrate : GameEffect()
 }
