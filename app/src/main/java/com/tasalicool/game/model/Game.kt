@@ -5,13 +5,8 @@ import java.util.UUID
 /**
  * Game - Orchestrator (STATE ONLY)
  *
- * Responsible ONLY for:
- * - Holding game state
- * - Tracking turns & phases
- *
- * NO rules
- * NO calculations
- * NO decisions
+ * Holds ONLY game state.
+ * No rules, no calculations, no decisions.
  */
 data class Game(
     val id: String = UUID.randomUUID().toString(),
@@ -32,7 +27,7 @@ data class Game(
     var currentRound: Int = 1
         private set
 
-    var currentTrick: Int = 1
+    var currentTrickNumber: Int = 1
         private set
 
     var dealerIndex: Int = 0
@@ -47,6 +42,8 @@ data class Game(
     var winningTeamId: Int? = null
         private set
 
+    val tricks: MutableList<Trick> = mutableListOf()
+
     // ================= GETTERS =================
 
     fun currentPlayer(): Player =
@@ -55,7 +52,7 @@ data class Game(
     fun dealerPlayer(): Player =
         players[dealerIndex]
 
-    // 👈 أهم دالة
+    /** اللاعب الذي على يمين الموزّع */
     fun rightOfDealerIndex(): Int =
         (dealerIndex + 1) % players.size
 
@@ -67,7 +64,8 @@ data class Game(
     fun startDealing() {
         gamePhase = GamePhase.DEALING
         biddingPhase = BiddingPhase.WAITING
-        currentTrick = 1
+        currentTrickNumber = 1
+        tricks.clear()
         currentPlayerIndex = rightOfDealerIndex()
     }
 
@@ -79,13 +77,18 @@ data class Game(
 
     fun startPlaying() {
         gamePhase = GamePhase.PLAYING
-        currentTrick = 1
+        currentTrickNumber = 1
+        tricks.clear()
         currentPlayerIndex = rightOfDealerIndex()
+    }
+
+    fun advanceBidding() {
+        currentPlayerIndex = nextPlayerIndex()
     }
 
     fun endTrick(nextLeaderIndex: Int) {
         currentPlayerIndex = nextLeaderIndex
-        currentTrick++
+        currentTrickNumber++
     }
 
     fun endRound() {
@@ -99,7 +102,7 @@ data class Game(
     }
 
     fun endGame(winnerTeamId: Int) {
-        winningTeamId = winnerTeamId
+        this.winningTeamId = winnerTeamId
         gamePhase = GamePhase.GAME_END
         isGameOver = true
     }
@@ -116,7 +119,7 @@ data class Game(
         when (gamePhase) {
             GamePhase.DEALING   -> "Dealing - Round $currentRound"
             GamePhase.BIDDING   -> "Bidding"
-            GamePhase.PLAYING   -> "Playing - Trick $currentTrick"
+            GamePhase.PLAYING   -> "Playing - Trick $currentTrickNumber"
             GamePhase.ROUND_END -> "Round End"
             GamePhase.GAME_END  -> "Game Over"
         }
