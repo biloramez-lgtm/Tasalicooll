@@ -10,7 +10,7 @@ fun Game.toEntity(): GameEntity {
         team2Name = team2.name,
         team1Score = team1.score,
         team2Score = team2.score,
-        winnerTeamId = winningTeamId ?: 0,
+        winnerTeamId = winningTeamId,   // 👈 بدون ?: 0
         totalRounds = roundsPlayed,
         gameMode = gameMode.name,
         duration = duration,
