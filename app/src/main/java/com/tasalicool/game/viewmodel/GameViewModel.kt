@@ -2,11 +2,8 @@ package com.tasalicool.game.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.tasalicool.game.model.Card
 import com.tasalicool.game.repository.GameRepository
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 class GameViewModel(
@@ -16,80 +13,83 @@ class GameViewModel(
     private val _uiState = MutableStateFlow(GameUiState())
     val uiState: StateFlow<GameUiState> = _uiState.asStateFlow()
 
+    private val _effect = MutableSharedFlow<GameEffect>()
+    val effect = _effect.asSharedFlow()
+
     init {
-        observeRepository()
+        observeGame()
     }
 
-    private fun observeRepository() {
+    /* ================= ACTION HANDLER ================= */
 
+    fun onAction(action: GameAction) {
+        when (action) {
+
+            is GameAction.StartGame -> startGame(action.team1, action.team2)
+            is GameAction.RestartGame -> restartGame()
+
+            is GameAction.PlaceBid ->
+                repository.placeBid(action.playerIndex, action.bid)
+
+            is GameAction.PlayCard ->
+                repository.playCard(action.playerIndex, action.card)
+
+            GameAction.ClearError ->
+                clearError()
+
+            /* Multiplayer (جاهز) */
+            GameAction.CreateRoom -> createRoom()
+            GameAction.JoinRoom -> joinRoom()
+            GameAction.LeaveRoom -> leaveRoom()
+        }
+    }
+
+    /* ================= GAME OBSERVER ================= */
+
+    private fun observeGame() {
         viewModelScope.launch {
-            repository.gameState.collect { game ->
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    game = game
+            combine(
+                repository.gameState,
+                repository.error
+            ) { game, error ->
+                _uiState.value.copy(
+                    isLoading = game == null,
+                    game = game,
+                    errorMessage = error,
+                    isMyTurn = game?.currentPlayerToPlayIndex == 0
                 )
-
-                if (game?.isGameOver == true) {
-                    sendEvent(GameEvent.NavigateToGameOver)
-                }
+            }.collect {
+                _uiState.value = it
             }
         }
-
-        viewModelScope.launch {
-            repository.error.collect { error ->
-                error?.let {
-                    _uiState.value = _uiState.value.copy(
-                        errorMessage = it,
-                        event = GameEvent.ShowSnackbar(it)
-                    )
-                }
-            }
-        }
-    }
-
-    /* ================= EVENTS ================= */
-
-    private fun sendEvent(event: GameEvent) {
-        _uiState.value = _uiState.value.copy(event = event)
-    }
-
-    fun consumeEvent() {
-        _uiState.value = _uiState.value.copy(event = null)
     }
 
     /* ================= GAME FLOW ================= */
 
-    fun startGame(team1: String, team2: String) {
-        _uiState.value = _uiState.value.copy(isLoading = true)
-        viewModelScope.launch {
-            repository.startGame(team1, team2)
-        }
+    private fun startGame(t1: String, t2: String) {
+        repository.startGame(t1, t2)
     }
 
-    fun restartGame() {
-        _uiState.value = GameUiState(isLoading = true)
+    private fun restartGame() {
         repository.restartGame()
     }
 
-    /* ================= BIDDING ================= */
-
-    fun placeBid(playerIndex: Int, bid: Int) {
-        viewModelScope.launch {
-            repository.placeBid(playerIndex, bid)
-        }
-    }
-
-    /* ================= PLAYING ================= */
-
-    fun playCard(playerIndex: Int, card: Card) {
-        viewModelScope.launch {
-            repository.playCard(playerIndex, card)
-            sendEvent(GameEvent.PlayCardAnimation)
-        }
-    }
-
-    fun clearError() {
-        _uiState.value = _uiState.value.copy(errorMessage = null)
+    private fun clearError() {
         repository.clearError()
     }
+
+    /* ================= MULTIPLAYER PLACEHOLDER ================= */
+
+    private fun createRoom() {
+        _uiState.value = _uiState.value.copy(
+            multiplayerState = _uiState.value.multiplayerState.copy(
+                enabled = true,
+                isHost = true,
+                connectionStatus = ConnectionStatus.CREATING_ROOM
+            )
+        )
+    }
+
+    private fun joinRoom() {}
+    private fun leaveRoom() {}
 }
