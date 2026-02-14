@@ -13,10 +13,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 /**
- * BidButtons - أزرار البدية
+ * BidButton - زر المزايدة
  */
 @Composable
-fun BidButton(bid: Int, isEnabled: Boolean = true, onClick: () -> Unit) {
+fun BidButton(
+    bid: Int,
+    isEnabled: Boolean = true,
+    onClick: () -> Unit
+) {
     Button(
         onClick = onClick,
         enabled = isEnabled,
@@ -28,7 +32,7 @@ fun BidButton(bid: Int, isEnabled: Boolean = true, onClick: () -> Unit) {
         shape = RoundedCornerShape(12.dp)
     ) {
         Text(
-            bid.toString(),
+            text = bid.toString(),
             fontSize = 18.sp,
             fontWeight = FontWeight.Bold,
             color = Color.Black
