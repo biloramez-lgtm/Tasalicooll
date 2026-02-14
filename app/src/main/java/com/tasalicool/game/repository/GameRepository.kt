@@ -8,11 +8,14 @@ class GameRepository(
     private val engine: GameEngine = GameEngine()
 ) {
 
-    val gameState = engine.gameState
-    val error = engine.error
+    val gameState: StateFlow<com.tasalicool.game.model.Game?> = engine.gameState
+    val error: StateFlow<String?> = engine.error
 
-    fun startGame(team1: String, team2: String) {
-        engine.initializeDefaultGame(team1, team2)
+    fun startGame(team1Name: String, team2Name: String) {
+        engine.initializeDefaultGame(
+            team1Name = team1Name,
+            team2Name = team2Name
+        )
     }
 
     fun restartGame() {
@@ -20,15 +23,13 @@ class GameRepository(
     }
 
     fun placeBid(playerIndex: Int, bid: Int) {
-        engine.gameState.value?.let {
-            engine.placeBid(it, playerIndex, bid)
-        }
+        val game = engine.gameState.value ?: return
+        engine.placeBid(game, playerIndex, bid)
     }
 
     fun playCard(playerIndex: Int, card: Card) {
-        engine.gameState.value?.let {
-            engine.playCard(it, playerIndex, card)
-        }
+        val game = engine.gameState.value ?: return
+        engine.playCard(game, playerIndex, card)
     }
 
     fun getValidBids(playerIndex: Int): List<Int> =
@@ -37,5 +38,7 @@ class GameRepository(
     fun getValidCards(playerIndex: Int): List<Card> =
         engine.getValidCards(playerIndex)
 
-    fun clearError() = engine.clearError()
+    fun clearError() {
+        engine.clearError()
+    }
 }
