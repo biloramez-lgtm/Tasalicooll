@@ -3,56 +3,70 @@ package com.tasalicool.game.rules
 import com.tasalicool.game.model.Player
 
 /**
- * BiddingRules - تحقق من صحة البدية
- * 
- * قوانين Tarneeb:
- * - البدية من 2-13
- * - الحد الأدنى يزداد حسب النقاط
- * - المجموع يجب يكون فوق الحد الأدنى
+ * BiddingRules - قوانين البدية (Tarneeb)
+ *
+ * - البدية بين 2 و 13
+ * - الحد الأدنى يرتفع بعد 30 نقطة
+ * - مجموع البديات له حد أدنى
  */
 object BiddingRules {
-    
+
     /**
-     * التحقق من صحة البدية
-     * @param bid البدية (2-13)
-     * @param handSize عدد الأوراق
-     * @param minimumBid الحد الأدنى
-     * @return صحيح أو خطأ
+     * التحقق من صحة بدية لاعب واحد
      */
-    fun isValidBid(bid: Int, handSize: Int, minimumBid: Int): Boolean {
+    fun isValidBid(
+        bid: Int,
+        handSize: Int,
+        minimumBid: Int
+    ): Boolean {
+        if (bid <= 0) return false
         return bid in minimumBid..handSize
     }
-    
+
     /**
      * الحد الأدنى للبدية حسب نقاط الفريق
      */
-    fun getMinimumBid(teamScore: Int): Int = when {
-        teamScore >= 30 -> 3
-        else -> 2
-    }
-    
+    fun getMinimumBid(teamScore: Int): Int =
+        if (teamScore >= 30) 3 else 2
+
     /**
-     * الحد الأدنى لمجموع البديات
+     * الحد الأدنى لمجموع البديات على الطاولة
      */
-    fun getMinimumTotalBids(maxTeamScore: Int): Int = when {
-        maxTeamScore >= 30 -> 12
-        else -> 11
-    }
-    
+    fun getMinimumTotalBids(maxTeamScore: Int): Int =
+        if (maxTeamScore >= 30) 12 else 11
+
     /**
-     * التحقق من صحة المجموع
+     * التحقق من صحة مجموع البديات
      */
-    fun isTotalBidsValid(totalBids: Int, maxTeamScore: Int): Boolean {
+    fun isTotalBidsValid(
+        totalBids: Int,
+        maxTeamScore: Int
+    ): Boolean {
         return totalBids >= getMinimumTotalBids(maxTeamScore)
     }
-    
+
     /**
-     * اقتراح بدية ذكية بناء على الأوراق
+     * اقتراح بدية ذكية (AI / مساعد)
+     *
+     * يعتمد على:
+     * - عدد الأوراق العالية
+     * - أقوى لون بيد اللاعب
      */
-    fun suggestBid(player: Player, minimumBid: Int): Int {
-        val highCardCount = player.hand.count { it.rank.value >= 10 }
-        val maxSuitCount = player.hand.groupingBy { it.suit }.eachCount().values.maxOrNull() ?: 0
-        var estimate = (highCardCount / 2) + (maxSuitCount / 3)
-        return estimate.coerceIn(minimumBid, player.hand.size)
+    fun suggestBid(
+        player: Player,
+        minimumBid: Int
+    ): Int {
+        val hand = player.hand
+
+        val highCards = hand.count { it.rank.value >= 11 } // J,Q,K,A
+        val strongestSuit = hand
+            .groupingBy { it.suit }
+            .eachCount()
+            .values
+            .maxOrNull() ?: 0
+
+        val estimate = (highCards / 2) + (strongestSuit / 2)
+
+        return estimate.coerceIn(minimumBid, hand.size)
     }
 }
