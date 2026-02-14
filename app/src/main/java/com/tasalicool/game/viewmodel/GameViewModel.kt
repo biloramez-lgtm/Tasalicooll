@@ -10,11 +10,13 @@ class GameViewModel(
     private val repository: GameRepository = GameRepository()
 ) : ViewModel() {
 
+    /* ================= STATE ================= */
+
     private val _uiState = MutableStateFlow(GameUiState())
     val uiState: StateFlow<GameUiState> = _uiState.asStateFlow()
 
     private val _effect = MutableSharedFlow<GameEffect>()
-    val effect = _effect.asSharedFlow()
+    val effect: SharedFlow<GameEffect> = _effect.asSharedFlow()
 
     init {
         observeGame()
@@ -25,21 +27,26 @@ class GameViewModel(
     fun onAction(action: GameAction) {
         when (action) {
 
-            is GameAction.StartGame -> startGame(action.team1, action.team2)
-            is GameAction.RestartGame -> restartGame()
+            is GameAction.StartGame -> {
+                startGame(action.team1Name, action.team2Name)
+            }
 
-            is GameAction.PlaceBid ->
+            GameAction.RestartGame -> restartGame()
+
+            is GameAction.PlaceBid -> {
                 repository.placeBid(action.playerIndex, action.bid)
+            }
 
-            is GameAction.PlayCard ->
+            is GameAction.PlayCard -> {
                 repository.playCard(action.playerIndex, action.card)
+            }
 
-            GameAction.ClearError ->
-                clearError()
+            GameAction.ClearError -> clearError()
 
-            /* Multiplayer (جاهز) */
+            /* -------- Multiplayer -------- */
+
             GameAction.CreateRoom -> createRoom()
-            GameAction.JoinRoom -> joinRoom()
+            is GameAction.JoinRoom -> joinRoom(action.roomCode)
             GameAction.LeaveRoom -> leaveRoom()
         }
     }
@@ -52,22 +59,30 @@ class GameViewModel(
                 repository.gameState,
                 repository.error
             ) { game, error ->
+
                 _uiState.value.copy(
                     isLoading = game == null,
                     game = game,
                     errorMessage = error,
-                    isMyTurn = game?.currentPlayerToPlayIndex == 0
+
+                    isMyTurn = game?.let {
+                        it.currentPlayerToPlayIndex == 0 // لاحقًا: playerId
+                    } ?: false,
+
+                    canBid = game?.gamePhase?.name == "BIDDING",
+                    canPlayCard = game?.gamePhase?.name == "PLAYING"
                 )
-            }.collect {
-                _uiState.value = it
+
+            }.collect { newState ->
+                _uiState.value = newState
             }
         }
     }
 
     /* ================= GAME FLOW ================= */
 
-    private fun startGame(t1: String, t2: String) {
-        repository.startGame(t1, t2)
+    private fun startGame(team1: String, team2: String) {
+        repository.startGame(team1, team2)
     }
 
     private fun restartGame() {
@@ -78,18 +93,36 @@ class GameViewModel(
         repository.clearError()
     }
 
-    /* ================= MULTIPLAYER PLACEHOLDER ================= */
+    /* ================= MULTIPLAYER (READY) ================= */
 
     private fun createRoom() {
-        _uiState.value = _uiState.value.copy(
-            multiplayerState = _uiState.value.multiplayerState.copy(
-                enabled = true,
-                isHost = true,
-                connectionStatus = ConnectionStatus.CREATING_ROOM
+        _uiState.update {
+            it.copy(
+                multiplayerState = it.multiplayerState.copy(
+                    enabled = true,
+                    isHost = true,
+                    status = ConnectionStatus.CREATING_ROOM
+                )
             )
-        )
+        }
     }
 
-    private fun joinRoom() {}
-    private fun leaveRoom() {}
+    private fun joinRoom(roomCode: String) {
+        _uiState.update {
+            it.copy(
+                multiplayerState = it.multiplayerState.copy(
+                    enabled = true,
+                    isHost = false,
+                    roomCode = roomCode,
+                    status = ConnectionStatus.CONNECTED
+                )
+            )
+        }
+    }
+
+    private fun leaveRoom() {
+        _uiState.update {
+            it.copy(multiplayerState = MultiplayerState())
+        }
+    }
 }
