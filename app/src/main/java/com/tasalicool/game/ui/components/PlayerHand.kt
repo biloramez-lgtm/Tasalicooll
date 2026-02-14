@@ -1,6 +1,5 @@
 package com.tasalicool.game.ui.components
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -47,12 +46,14 @@ fun PlayerHand(
 }
 
 @Composable
-fun HandCard(card: Card, onClick: (Card) -> Unit) {
+fun HandCard(
+    card: Card,
+    onClick: (Card) -> Unit
+) {
     Surface(
         modifier = Modifier
             .width(50.dp)
-            .height(75.dp)
-            .background(Color.White, RoundedCornerShape(6.dp)),
+            .height(75.dp),
         onClick = { onClick(card) },
         color = Color.White,
         shape = RoundedCornerShape(6.dp)
@@ -65,13 +66,13 @@ fun HandCard(card: Card, onClick: (Card) -> Unit) {
             verticalArrangement = Arrangement.Center
         ) {
             Text(
-                card.rank.displayName,
+                text = card.rank.displayName,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
                 color = if (card.suit.isRed()) Color.Red else Color.Black
             )
             Text(
-                card.suit.getSymbol(),
+                text = card.suit.getSymbol(),
                 fontSize = 11.sp,
                 color = if (card.suit.isRed()) Color.Red else Color.Black
             )
