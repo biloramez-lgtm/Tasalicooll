@@ -1,46 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    package="com.tasalicool.game">
+    xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- ================= Network Permissions ================= -->
+    <!-- ================= NETWORK (LAN Multiplayer) ================= -->
 
+    <!-- Required for local socket communication (LAN) -->
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Optional: check if device is connected to network -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
-    <!-- WiFi -->
-    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
-    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
-
-    <!-- Required for WiFi scanning (Android < 13) -->
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-
-    <!-- Android 13+ WiFi permission -->
-    <uses-permission
-        android:name="android.permission.NEARBY_WIFI_DEVICES"
-        android:usesPermissionFlags="neverForLocation"
-        tools:targetApi="33" />
-
-    <!-- ================= Optional Features ================= -->
-
-    <uses-feature
-        android:name="android.hardware.wifi"
-        android:required="true" />
-
-    <!-- ================= Application ================= -->
+    <!-- ================= APPLICATION ================= -->
 
     <application
         android:allowBackup="true"
-        android:fullBackupContent="@xml/backup_rules"
-        android:dataExtractionRules="@xml/data_extraction_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.TasalicoolGame"
         android:usesCleartextTraffic="true"
-        tools:targetApi="34">
+        tools:targetApi="35">
 
         <activity
             android:name=".MainActivity"
