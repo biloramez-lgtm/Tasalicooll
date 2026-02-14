@@ -214,32 +214,45 @@ class GameEngine {
         }
     }
 
-    // ================= NETWORK SUPPORT =================
+    // ================= NETWORK SUPPORT (CLIENT MODE CLEAN) =================
 
     fun onNetworkCommand(command: NetworkCommand) {
         val game = _gameState.value ?: return
 
         when (command) {
 
+            is NetworkCommand.GameStarted -> {
+                _gameState.value = game
+            }
+
+            is NetworkCommand.TurnChanged -> {
+                val newIndex = game.players.indexOfFirst {
+                    it.id == command.currentPlayerId
+                }
+                if (newIndex != -1) {
+                    game.currentPlayerIndex = newIndex
+                    _gameState.value = game
+                }
+            }
+
             is NetworkCommand.BidPlaced -> {
-                val playerIndex = game.players.indexOfFirst { it.id == command.playerId }
+                val playerIndex = game.players.indexOfFirst {
+                    it.id == command.playerId
+                }
                 if (playerIndex != -1) {
                     game.players[playerIndex].bid = command.bidValue
-                    game.advanceBidding()
-
-                    if (biddingEngine.isBiddingComplete(game)) {
-                        game.startPlaying()
-                    }
-
                     _gameState.value = game
                 }
             }
 
             is NetworkCommand.CardPlayed -> {
-                val playerIndex = game.players.indexOfFirst { it.id == command.playerId }
+                val playerIndex = game.players.indexOfFirst {
+                    it.id == command.playerId
+                }
                 if (playerIndex == -1) return
 
                 val player = game.players[playerIndex]
+
                 val card = Card(
                     suit = Suit.valueOf(command.cardSuit),
                     rank = Rank.valueOf(command.cardRank)
@@ -250,23 +263,33 @@ class GameEngine {
                 player.removeCard(card)
                 trick.play(playerIndex, card)
 
-                if (trick.isComplete(game.players.size)) {
-                    val winner = cardRules.calculateTrickWinner(trick)
-                    game.endTrick(winner)
+                _gameState.value = game
+            }
 
-                    if (game.tricks.size == 13) {
-                        endRound(game)
-                    }
-                } else {
-                    game.advanceTurn()
+            is NetworkCommand.TrickCompleted -> {
+                val winnerIndex = game.players.indexOfFirst {
+                    it.id == command.winnerPlayerId
                 }
+                if (winnerIndex != -1) {
+                    game.endTrick(winnerIndex)
+                    _gameState.value = game
+                }
+            }
 
+            is NetworkCommand.RoundCompleted -> {
+                game.team1.score = command.team1Score
+                game.team2.score = command.team2Score
+                game.endRound()
                 _gameState.value = game
             }
 
             is NetworkCommand.GameEnded -> {
                 game.endGame(command.winningTeamId)
                 _gameState.value = game
+            }
+
+            is NetworkCommand.SyncState -> {
+                // optional future full state sync
             }
 
             else -> Unit
