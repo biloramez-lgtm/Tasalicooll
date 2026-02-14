@@ -1,24 +1,53 @@
 package com.tasalicool.game.ui.screens
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun SettingsDialog(onDismiss: () -> Unit) {
+fun SettingsDialog(
+    onDismiss: () -> Unit
+) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Settings") },
-        text = { Text("Settings Coming Soon") },
+        title = {
+            Text(
+                text = "Settings",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+
+                // Placeholder Setting
+                Text(
+                    text = "Game settings will be available soon.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+
+                Divider()
+
+                Text(
+                    text = "Version 1.0",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        },
         confirmButton = {
-            Button(onClick = onDismiss) {
+            Button(
+                onClick = onDismiss,
+                shape = MaterialTheme.shapes.medium
+            ) {
                 Text("Close")
             }
-        }
+        },
+        shape = MaterialTheme.shapes.large
     )
 }
