@@ -16,7 +16,8 @@ class GameEngine {
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
 
-    // Initialize new game
+    /* ======================= INITIALIZATION ======================= */
+
     fun initializeGame(
         team1: Team,
         team2: Team,
@@ -41,7 +42,32 @@ class GameEngine {
         return game
     }
 
-    // Deal cards
+    /** 🔥 NEW – Professional default initializer */
+    fun initializeDefaultGame(
+        team1Name: String,
+        team2Name: String,
+        dealerIndex: Int = 0
+    ) {
+        val p1 = Player(0, "$team1Name-1", isAI = false)
+        val p2 = Player(1, "$team2Name-1", isAI = true)
+        val p3 = Player(2, "$team1Name-2", isAI = false)
+        val p4 = Player(3, "$team2Name-2", isAI = true)
+
+        val team1 = Team(1, team1Name, p1, p3)
+        val team2 = Team(2, team2Name, p2, p4)
+
+        val game = initializeGame(team1, team2, dealerIndex)
+        dealCards(game)
+    }
+
+    fun restartGame() {
+        val game = _gameState.value ?: return
+        game.resetForNewRound()
+        dealCards(game)
+    }
+
+    /* ======================= DEALING ======================= */
+
     fun dealCards(game: Game) {
         try {
             val deck = Card.createGameDeck()
@@ -65,7 +91,8 @@ class GameEngine {
         }
     }
 
-    // Place bid
+    /* ======================= BIDDING ======================= */
+
     fun placeBid(game: Game, playerIndex: Int, bid: Int): Boolean {
         return try {
             val player = game.players[playerIndex]
@@ -110,7 +137,8 @@ class GameEngine {
         }
     }
 
-    // Play card
+    /* ======================= PLAYING ======================= */
+
     fun playCard(game: Game, playerIndex: Int, card: Card): Boolean {
         return try {
             val player = game.players[playerIndex]
@@ -159,11 +187,11 @@ class GameEngine {
         }
     }
 
-    // End round
+    /* ======================= ROUND END ======================= */
+
     private fun endRound(game: Game) {
         try {
-            val after30 =
-                maxOf(game.team1.score, game.team2.score) >= 30
+            val after30 = maxOf(game.team1.score, game.team2.score) >= 30
 
             fun apply(team: Team) {
                 if (team.isBidMet()) {
@@ -184,13 +212,11 @@ class GameEngine {
                     game.winningTeamId = 1
                     game.gamePhase = GamePhase.GAME_END
                 }
-
                 game.team2.isWinner -> {
                     game.isGameOver = true
                     game.winningTeamId = 2
                     game.gamePhase = GamePhase.GAME_END
                 }
-
                 else -> game.resetForNewRound()
             }
 
@@ -201,20 +227,20 @@ class GameEngine {
         }
     }
 
+    /* ======================= HELPERS ======================= */
+
     fun getValidBids(playerIndex: Int): List<Int> {
         val game = _gameState.value ?: return emptyList()
-        val player = game.players[playerIndex]
         val minBid = scoringEngine.getMinimumBid(
             maxOf(game.team1.score, game.team2.score)
         )
-        return biddingEngine.getValidBids(player, minBid)
+        return biddingEngine.getValidBids(game.players[playerIndex], minBid)
     }
 
     fun getValidCards(playerIndex: Int): List<Card> {
         val game = _gameState.value ?: return emptyList()
-        val player = game.players[playerIndex]
         val trick = game.tricks.lastOrNull() ?: Trick()
-        return cardRulesEngine.getValidPlayableCards(player, trick)
+        return cardRulesEngine.getValidPlayableCards(game.players[playerIndex], trick)
     }
 
     fun clearError() {
@@ -222,53 +248,38 @@ class GameEngine {
     }
 }
 
-/* ======================= HELPERS ======================= */
+/* ======================= ENGINES ======================= */
 
 class CardRulesEngine {
 
-    fun canPlayCard(
-        card: Card,
-        player: Player,
-        trick: Trick,
-        played: List<Card>
-    ): Boolean {
+    fun canPlayCard(card: Card, player: Player, trick: Trick, played: List<Card>): Boolean {
         if (played.isEmpty()) return true
         val suit = trick.trickSuit ?: return true
         return !player.canFollowSuit(suit) || card.suit == suit
     }
 
-    fun calculateTrickWinner(
-        trick: Trick,
-        trump: Suit = Suit.HEARTS
-    ): Int {
-        if (trick.cards.isEmpty()) return -1
-
+    fun calculateTrickWinner(trick: Trick, trump: Suit = Suit.HEARTS): Int {
         var winner = trick.playOrder.first()
         var winningCard = trick.cards[winner]!!
 
         for (id in trick.playOrder.drop(1)) {
             val card = trick.cards[id] ?: continue
-
             val better =
                 (card.suit == trump && winningCard.suit != trump) ||
                 (card.suit == winningCard.suit && card.rank.value > winningCard.rank.value)
-
             if (better) {
-                winningCard = card
                 winner = id
+                winningCard = card
             }
         }
         return winner
     }
 
-    fun validateBid(bid: Int, handSize: Int, min: Int) =
-        bid in min..handSize
+    fun validateBid(bid: Int, handSize: Int, min: Int) = bid in min..handSize
 
     fun getValidPlayableCards(player: Player, trick: Trick): List<Card> {
-        if (trick.cards.isEmpty()) return player.hand.toList()
-        val suit = trick.trickSuit ?: return player.hand.toList()
-        val sameSuit = player.hand.filter { it.suit == suit }
-        return sameSuit.ifEmpty { player.hand.toList() }
+        val suit = trick.trickSuit ?: return player.hand
+        return player.hand.filter { it.suit == suit }.ifEmpty { player.hand }
     }
 }
 
