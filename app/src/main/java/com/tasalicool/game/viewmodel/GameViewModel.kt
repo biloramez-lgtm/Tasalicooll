@@ -13,11 +13,19 @@ class GameViewModel(
     val gameState = repository.gameState
     val errorState = repository.error
 
+    /* ================= GAME FLOW ================= */
+
     fun startGame(team1Name: String, team2Name: String) {
         viewModelScope.launch {
             repository.startGame(team1Name, team2Name)
         }
     }
+
+    fun restartGame() {
+        repository.restartGame()
+    }
+
+    /* ================= BIDDING ================= */
 
     fun placeBid(playerIndex: Int, bid: Int) {
         viewModelScope.launch {
@@ -25,15 +33,15 @@ class GameViewModel(
         }
     }
 
+    /* ================= PLAYING ================= */
+
     fun playCard(playerIndex: Int, card: Card) {
         viewModelScope.launch {
             repository.playCard(playerIndex, card)
         }
     }
 
-    fun restartGame() {
-        repository.restartGame()
-    }
+    /* ================= ERROR ================= */
 
     fun clearError() {
         repository.clearError()
