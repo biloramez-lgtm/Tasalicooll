@@ -6,7 +6,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -14,7 +13,9 @@ import androidx.compose.ui.unit.sp
 
 @Composable
 fun HomeScreen(
-    onStartGame: () -> Unit
+    onSinglePlayerClick: () -> Unit,
+    onMultiplayerClick: () -> Unit,
+    onSettingsClick: () -> Unit
 ) {
     Box(
         modifier = Modifier
@@ -30,36 +31,67 @@ fun HomeScreen(
             verticalArrangement = Arrangement.Center
         ) {
 
-            // Game Title
+            // Title
             Text(
                 text = "TASALICOOL 400",
-                fontSize = 48.sp,
+                fontSize = 42.sp,
                 fontWeight = FontWeight.ExtraBold,
                 color = MaterialTheme.colorScheme.primary,
                 textAlign = TextAlign.Center
             )
 
-            Spacer(modifier = Modifier.height(56.dp))
+            Spacer(modifier = Modifier.height(48.dp))
 
-            // Start Game Button
-            Button(
-                onClick = onStartGame,
+            // Single Player
+            MenuButton(
+                text = "Single Player",
+                onClick = onSinglePlayerClick
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Multiplayer
+            MenuButton(
+                text = "Multiplayer",
+                onClick = onMultiplayerClick
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Settings
+            OutlinedButton(
+                onClick = onSettingsClick,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(58.dp),
-                shape = MaterialTheme.shapes.large,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary
-                )
+                    .height(56.dp),
+                shape = MaterialTheme.shapes.large
             ) {
                 Text(
-                    text = "START GAME",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    text = "Settings",
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 16.sp
                 )
             }
-
         }
+    }
+}
+
+@Composable
+private fun MenuButton(
+    text: String,
+    onClick: () -> Unit
+) {
+    Button(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(58.dp),
+        shape = MaterialTheme.shapes.large
+    ) {
+        Text(
+            text = text.uppercase(),
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold
+        )
     }
 }
