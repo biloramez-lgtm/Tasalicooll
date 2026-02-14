@@ -22,21 +22,39 @@ fun AppNavGraph(
         navController = navController,
         startDestination = Screen.Home.route
     ) {
+
+        // HOME
         composable(Screen.Home.route) {
             HomeScreen(
-                onStartGame = {
+                onSinglePlayerClick = {
                     navController.navigate(Screen.Game.route)
                 },
-                onViewLeaderboard = {}
+                onMultiplayerClick = {
+                    navController.navigate(Screen.Multiplayer.route)
+                },
+                onSettingsClick = {
+                    navController.navigate(Screen.Settings.route)
+                }
             )
         }
-        
+
+        // GAME
         composable(Screen.Game.route) {
-            // Game Screen
+            GameScreen() // تأكد إنها موجودة
         }
-        
+
+        // MULTIPLAYER
         composable(Screen.Multiplayer.route) {
             MultiplayerScreen()
+        }
+
+        // SETTINGS
+        composable(Screen.Settings.route) {
+            SettingsDialog(
+                onDismiss = {
+                    navController.popBackStack()
+                }
+            )
         }
     }
 }
