@@ -2,6 +2,7 @@ package com.tasalicool.game.engine
 
 import com.tasalicool.game.engine.ai.AiEngine
 import com.tasalicool.game.model.*
+import com.tasalicool.game.network.NetworkCommand
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -210,6 +211,65 @@ class GameEngine {
                 game.startNextRound()
                 dealCards(game)
             }
+        }
+    }
+
+    // ================= NETWORK SUPPORT =================
+
+    fun onNetworkCommand(command: NetworkCommand) {
+        val game = _gameState.value ?: return
+
+        when (command) {
+
+            is NetworkCommand.BidPlaced -> {
+                val playerIndex = game.players.indexOfFirst { it.id == command.playerId }
+                if (playerIndex != -1) {
+                    game.players[playerIndex].bid = command.bidValue
+                    game.advanceBidding()
+
+                    if (biddingEngine.isBiddingComplete(game)) {
+                        game.startPlaying()
+                    }
+
+                    _gameState.value = game
+                }
+            }
+
+            is NetworkCommand.CardPlayed -> {
+                val playerIndex = game.players.indexOfFirst { it.id == command.playerId }
+                if (playerIndex == -1) return
+
+                val player = game.players[playerIndex]
+                val card = Card(
+                    suit = Suit.valueOf(command.cardSuit),
+                    rank = Rank.valueOf(command.cardRank)
+                )
+
+                val trick = game.getOrCreateCurrentTrick()
+
+                player.removeCard(card)
+                trick.play(playerIndex, card)
+
+                if (trick.isComplete(game.players.size)) {
+                    val winner = cardRules.calculateTrickWinner(trick)
+                    game.endTrick(winner)
+
+                    if (game.tricks.size == 13) {
+                        endRound(game)
+                    }
+                } else {
+                    game.advanceTurn()
+                }
+
+                _gameState.value = game
+            }
+
+            is NetworkCommand.GameEnded -> {
+                game.endGame(command.winningTeamId)
+                _gameState.value = game
+            }
+
+            else -> Unit
         }
     }
 
