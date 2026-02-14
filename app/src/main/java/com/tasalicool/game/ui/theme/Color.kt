@@ -3,48 +3,75 @@ package com.tasalicool.game.ui.theme
 import androidx.compose.ui.graphics.Color
 
 /**
- * Color Palette - ألوان Tasalicool
+ * Tasalicool Color Palette
+ * Production Ready - Organized & Clean
  */
 
-// ==================== PRIMARY ====================
-val PrimaryRed = Color(0xFF8B0000)          // Dark Red
-val PrimaryRedLight = Color(0xFFE53935)     // Light Red
+// ============================
+// PRIMARY (Game Identity)
+// ============================
 
-// ==================== SECONDARY ====================
-val SecondaryGold = Color(0xFFFFB800)       // Gold
-val SecondaryGoldLight = Color(0xFFFFC107)  // Light Gold
+val PrimaryRed = Color(0xFF8B0000)
+val PrimaryRedLight = Color(0xFFE53935)
 
-// ==================== TERTIARY ====================
-val TertiaryPurple = Color(0xFF6A1B9A)      // Purple
+val SecondaryGold = Color(0xFFFFB800)
+val SecondaryGoldLight = Color(0xFFFFC107)
 
-// ==================== BACKGROUNDS ====================
-val BackgroundDark = Color(0xFF1a1a1a)      // Dark
-val BackgroundGreen = Color(0xFF1a4d1a)     // Green (Table)
-val BackgroundBlack = Color(0xFF0d0d0d)     // Black
+val TertiaryPurple = Color(0xFF6A1B9A)
 
-// ==================== STATUS ====================
-val SuccessGreen = Color(0xFF4CAF50)        // Success
-val ErrorRed = Color(0xFFE53935)            // Error
-val WarningOrange = Color(0xFFFF9800)       // Warning
-val InfoBlue = Color(0xFF2196F3)            // Info
 
-// ==================== TEXT ====================
-val TextWhite = Color(0xFFFFFFFF)           // White
-val TextGray = Color(0xFF999999)            // Gray
-val TextGray2 = Color(0xFF666666)           // Dark Gray
-val TextGray3 = Color(0xFF444444)           // Darker Gray
+// ============================
+// BACKGROUNDS
+// ============================
 
-// ==================== CARDS ====================
-val CardWhite = Color(0xFFFFFFFF)           // Card White
-val CardRed = Color(0xFFE53935)             // Red Cards
-val CardBlack = Color(0xFF000000)           // Black Cards
+val BackgroundDark = Color(0xFF121212)
+val BackgroundSurfaceDark = Color(0xFF1E1E1E)
+val BackgroundTableGreen = Color(0xFF1A4D1A)
+val BackgroundBlack = Color(0xFF0D0D0D)
 
-// ==================== UI ELEMENTS ====================
-val ButtonYellow = Color(0xFFFFC107)        // Button Yellow
-val ButtonGreen = Color(0xFF4CAF50)         // Button Green
-val ButtonGray = Color(0xFF666666)          // Button Gray
-val BorderGray = Color(0xFF555555)          // Border Gray
 
-// ==================== TRANSPARENT ====================
-val TransparentBlack = Color(0x80000000)    // Black 50%
-val TransparentWhite = Color(0x80FFFFFF)    // White 50%
+// ============================
+// STATUS COLORS
+// ============================
+
+val SuccessGreen = Color(0xFF4CAF50)
+val ErrorRed = Color(0xFFE53935)
+val WarningOrange = Color(0xFFFF9800)
+val InfoBlue = Color(0xFF2196F3)
+
+
+// ============================
+// TEXT COLORS
+// ============================
+
+val TextWhite = Color(0xFFFFFFFF)
+val TextLightGray = Color(0xFF999999)
+val TextMediumGray = Color(0xFF666666)
+val TextDarkGray = Color(0xFF444444)
+
+
+// ============================
+// CARD COLORS
+// ============================
+
+val CardWhite = Color(0xFFFFFFFF)
+val CardRed = Color(0xFFE53935)
+val CardBlack = Color(0xFF000000)
+
+
+// ============================
+// UI ELEMENTS
+// ============================
+
+val ButtonYellow = SecondaryGoldLight
+val ButtonGreen = SuccessGreen
+val ButtonGray = TextMediumGray
+val BorderGray = Color(0xFF555555)
+
+
+// ============================
+// TRANSPARENCY
+// ============================
+
+val TransparentBlack50 = Color(0x80000000)
+val TransparentWhite50 = Color(0x80FFFFFF)
