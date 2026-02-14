@@ -6,5 +6,12 @@ data class GameUiState(
     val isLoading: Boolean = true,
     val game: Game? = null,
     val errorMessage: String? = null,
-    val event: GameEvent? = null
+
+    // UI helpers
+    val isMyTurn: Boolean = false,
+    val canBid: Boolean = false,
+    val canPlayCard: Boolean = false,
+
+    // Multiplayer
+    val multiplayerState: MultiplayerState = MultiplayerState()
 )
