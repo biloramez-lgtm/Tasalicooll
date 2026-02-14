@@ -3,36 +3,49 @@ package com.tasalicool.game.model
 import java.util.UUID
 
 /**
- * Game - Orchestrator
+ * Game - Orchestrator (STATE ONLY)
  *
  * Responsible ONLY for:
  * - Holding game state
  * - Tracking turns & phases
- * - Delegating logic to external engines
  *
- * NO rules, NO calculations, NO decisions
+ * NO rules
+ * NO calculations
+ * NO decisions
  */
 data class Game(
     val id: String = UUID.randomUUID().toString(),
 
     val team1: Team,
     val team2: Team,
-    val players: List<Player>,
+    val players: List<Player>
+) {
 
     // ================= STATE =================
 
-    var gamePhase: GamePhase = GamePhase.DEALING,
-    var biddingPhase: BiddingPhase = BiddingPhase.WAITING,
+    var gamePhase: GamePhase = GamePhase.DEALING
+        private set
 
-    var currentRound: Int = 1,
-    var currentTrick: Int = 1,
+    var biddingPhase: BiddingPhase = BiddingPhase.WAITING
+        private set
 
-    var dealerIndex: Int = 0,
-    var currentPlayerIndex: Int = 0,
+    var currentRound: Int = 1
+        private set
 
-    var isGameOver: Boolean = false,
+    var currentTrick: Int = 1
+        private set
+
+    var dealerIndex: Int = 0
+        private set
+
+    var currentPlayerIndex: Int = 0
+        private set
+
+    var isGameOver: Boolean = false
+        private set
+
     var winningTeamId: Int? = null
-) {
+        private set
 
     // ================= GETTERS =================
 
@@ -42,8 +55,9 @@ data class Game(
     fun dealerPlayer(): Player =
         players[dealerIndex]
 
-    fun rightOfDealer(): Player =
-        players[(dealerIndex + 1) % players.size]
+    // 👈 أهم دالة
+    fun rightOfDealerIndex(): Int =
+        (dealerIndex + 1) % players.size
 
     fun nextPlayerIndex(): Int =
         (currentPlayerIndex + 1) % players.size
@@ -54,19 +68,19 @@ data class Game(
         gamePhase = GamePhase.DEALING
         biddingPhase = BiddingPhase.WAITING
         currentTrick = 1
-        currentPlayerIndex = rightOfDealer().position
+        currentPlayerIndex = rightOfDealerIndex()
     }
 
     fun startBidding() {
         gamePhase = GamePhase.BIDDING
         biddingPhase = BiddingPhase.ACTIVE
-        currentPlayerIndex = rightOfDealer().position
+        currentPlayerIndex = rightOfDealerIndex()
     }
 
     fun startPlaying() {
         gamePhase = GamePhase.PLAYING
         currentTrick = 1
-        currentPlayerIndex = rightOfDealer().position
+        currentPlayerIndex = rightOfDealerIndex()
     }
 
     fun endTrick(nextLeaderIndex: Int) {
@@ -85,7 +99,7 @@ data class Game(
     }
 
     fun endGame(winnerTeamId: Int) {
-        this.winningTeamId = winnerTeamId
+        winningTeamId = winnerTeamId
         gamePhase = GamePhase.GAME_END
         isGameOver = true
     }
