@@ -94,16 +94,11 @@ class MultiplayerManager {
 
             _players.value = _players.value + (playerId to player)
             _events.tryEmit(NetworkEvent.PlayerConnected(player))
+            return
         }
 
+        // 🔥 Host فقط يستقبل ويعالج
         _commands.tryEmit(command)
-
-        // Broadcast للكل ما عدا المرسل
-        clients.forEach { (id, conn) ->
-            if (id != playerId) {
-                conn.sendSafe(command)
-            }
-        }
     }
 
     private fun removeClient(playerId: String) {
@@ -115,6 +110,7 @@ class MultiplayerManager {
         }
     }
 
+    // 🔥 يستخدم فقط لبث SyncState من الـ Host
     fun broadcast(command: NetworkCommand) {
         if (!serverRunning) return
         clients.values.forEach { it.sendSafe(command) }
@@ -141,7 +137,7 @@ class MultiplayerManager {
             serverConnection = ServerConnection(
                 clientSocket!!,
                 json,
-                onMessage = { _commands.tryEmit(it) },
+                onMessage = { _commands.tryEmit(it) }, // يستقبل SyncState فقط
                 onDisconnect = {
                     _connectionState.value = ConnectionState.DISCONNECTED
                 }
@@ -166,16 +162,14 @@ class MultiplayerManager {
         serverConnection?.sendSafe(command)
     }
 
-    /* ==================== LOCAL / AI SUPPORT ==================== */
+    /* ==================== LOCAL HOST SUPPORT ==================== */
 
     fun sendLocalCommand(
         playerId: String,
         command: NetworkCommand
     ) {
-        _commands.tryEmit(command)
-
         if (_connectionState.value == ConnectionState.HOSTING) {
-            broadcast(command)
+            _commands.tryEmit(command)
         }
     }
 
