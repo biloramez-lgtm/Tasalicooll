@@ -6,57 +6,60 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 @Composable
-fun HomeScreen(onStartGame: () -> Unit) {
+fun HomeScreen(
+    onStartGame: () -> Unit
+) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
-        contentAlignment = Alignment.Center
+            .background(MaterialTheme.colorScheme.background)
     ) {
+
         Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
             modifier = Modifier
-                .padding(32.dp)
-                .fillMaxWidth()
+                .fillMaxSize()
+                .padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
+
+            // Game Title
             Text(
-                text = "♥ TARNEEB 400 ♥",
-                style = MaterialTheme.typography.displayMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
+                text = "TASALICOOL 400",
                 fontSize = 48.sp,
-                modifier = Modifier.padding(bottom = 32.dp)
+                fontWeight = FontWeight.ExtraBold,
+                color = MaterialTheme.colorScheme.primary,
+                textAlign = TextAlign.Center
             )
 
-            Text(
-                text = "The Professional Tarneeb Card Game",
-                style = MaterialTheme.typography.bodyLarge,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(bottom = 48.dp)
-            )
+            Spacer(modifier = Modifier.height(56.dp))
 
+            // Start Game Button
             Button(
                 onClick = onStartGame,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp),
+                    .height(58.dp),
+                shape = MaterialTheme.shapes.large,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary
                 )
             ) {
                 Text(
-                    text = "Start New Game",
+                    text = "START GAME",
                     fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
                 )
             }
+
         }
     }
 }
