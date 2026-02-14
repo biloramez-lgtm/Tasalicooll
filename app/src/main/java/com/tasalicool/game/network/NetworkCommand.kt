@@ -6,10 +6,11 @@ import kotlinx.serialization.Serializable
 /**
  * NetworkCommand
  *
- * جميع أوامر الشبكة الخاصة بالـ Multiplayer
- * Local WiFi / Hotspot
- * JSON based – Production Ready
+ * Final Production Version
+ * Local WiFi / Hotspot Multiplayer
+ * Host authoritative architecture
  */
+
 @Serializable
 sealed class NetworkCommand {
 
@@ -44,7 +45,7 @@ sealed class NetworkCommand {
         val timestamp: Long = System.currentTimeMillis()
     ) : NetworkCommand()
 
-    // ==================== GAME STATE ====================
+    // ==================== GAME FLOW ====================
 
     @Serializable
     @SerialName("GameStarted")
@@ -56,6 +57,24 @@ sealed class NetworkCommand {
     ) : NetworkCommand()
 
     @Serializable
+    @SerialName("TurnChanged")
+    data class TurnChanged(
+        val gameId: String,
+        val currentPlayerId: String,
+        val timestamp: Long = System.currentTimeMillis()
+    ) : NetworkCommand()
+
+    @Serializable
+    @SerialName("SyncState")
+    data class SyncState(
+        val gameId: String,
+        val serializedGameState: String,
+        val timestamp: Long = System.currentTimeMillis()
+    ) : NetworkCommand()
+
+    // ==================== BIDDING ====================
+
+    @Serializable
     @SerialName("BidPlaced")
     data class BidPlaced(
         val gameId: String,
@@ -63,6 +82,8 @@ sealed class NetworkCommand {
         val bidValue: Int,
         val timestamp: Long = System.currentTimeMillis()
     ) : NetworkCommand()
+
+    // ==================== PLAY ====================
 
     @Serializable
     @SerialName("CardPlayed")
@@ -82,6 +103,8 @@ sealed class NetworkCommand {
         val winnerPlayerId: String,
         val timestamp: Long = System.currentTimeMillis()
     ) : NetworkCommand()
+
+    // ==================== ROUND / GAME END ====================
 
     @Serializable
     @SerialName("RoundCompleted")
