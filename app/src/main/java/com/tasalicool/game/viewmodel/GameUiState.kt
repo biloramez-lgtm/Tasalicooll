@@ -2,25 +2,29 @@ package com.tasalicool.game.viewmodel
 
 import com.tasalicool.game.model.Game
 
+/**
+ * Single source of truth for the whole Game UI
+ * Production ready – scalable – multiplayer friendly
+ */
 data class GameUiState(
 
-    /* ---------- Core ---------- */
+    /* ================= CORE ================= */
     val isLoading: Boolean = true,
     val game: Game? = null,
 
-    /* ---------- Error & Retry ---------- */
+    /* ================= ERROR / RETRY ================= */
     val error: UiError? = null,
     val canRetry: Boolean = false,
 
-    /* ---------- UI Logic ---------- */
+    /* ================= UI HELPERS ================= */
     val isMyTurn: Boolean = false,
     val canBid: Boolean = false,
     val canPlayCard: Boolean = false,
     val showGameOver: Boolean = false,
 
-    /* ---------- Multiplayer ---------- */
+    /* ================= MULTIPLAYER ================= */
     val multiplayer: MultiplayerState = MultiplayerState(),
 
-    /* ---------- Sync / Debug ---------- */
+    /* ================= SYNC / DEBUG ================= */
     val lastUpdateTimestamp: Long = System.currentTimeMillis()
 )
