@@ -4,15 +4,44 @@ package com.tasalicool.game.network
  * NetworkEvent - أحداث الشبكة
  */
 sealed class NetworkEvent {
-    data class PlayerConnected(val player: NetworkPlayer) : NetworkEvent()
-    data class PlayerDisconnected(val playerId: String) : NetworkEvent()
-    data class MessageReceived(val playerId: String, val command: NetworkCommand) : NetworkEvent()
+
+    /**
+     * لاعب جديد اتصل
+     */
+    data class PlayerConnected(
+        val player: NetworkPlayer
+    ) : NetworkEvent()
+
+    /**
+     * لاعب انقطع
+     */
+    data class PlayerDisconnected(
+        val playerId: String
+    ) : NetworkEvent()
+
+    /**
+     * رسالة واردة من لاعب أو السيرفر
+     */
+    data class MessageReceived(
+        val playerId: String,
+        val command: NetworkCommand
+    ) : NetworkEvent()
+
+    /**
+     * انقطع الاتصال مع السيرفر
+     */
     object ServerDisconnected : NetworkEvent()
-    data class ConnectionError(val message: String) : NetworkEvent()
+
+    /**
+     * خطأ في الاتصال
+     */
+    data class ConnectionError(
+        val message: String
+    ) : NetworkEvent()
 }
 
 /**
- * لاعب متصل بالشبكة
+ * NetworkPlayer - لاعب متصل بالشبكة
  */
 data class NetworkPlayer(
     val id: String,
@@ -22,23 +51,12 @@ data class NetworkPlayer(
 )
 
 /**
- * حالة اللاعب
+ * PlayerStatus - حالة اللاعب داخل اللعبة
  */
 enum class PlayerStatus {
-    CONNECTED,
-    BIDDING,
-    PLAYING,
-    WAITING,
-    DISCONNECTED
-}
-
-/**
- * حالة الاتصال
- */
-enum class ConnectionState {
-    DISCONNECTED,      // غير متصل
-    CONNECTING,        // جاري الاتصال
-    CONNECTED,         // متصل كعميل
-    HOSTING,           // استضافة كسيرفر
-    ERROR              // خطأ في الاتصال
+    CONNECTED,     // متصل فقط
+    BIDDING,       // في مرحلة البدية
+    PLAYING,       // يلعب ورقة
+    WAITING,       // ينتظر دوره
+    DISCONNECTED   // انقطع
 }
