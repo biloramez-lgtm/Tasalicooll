@@ -5,86 +5,78 @@ import com.tasalicool.game.model.Suit
 import com.tasalicool.game.model.Trick
 
 /**
- * TrickRules - قوانين الخدعات
- * 
- * القاعدة الذهبية: القلب (♥) دائماً ترامب
- * أعلى قلب يربح الخدعة
+ * TrickRules - قوانين الخدعة (Trick Engine)
+ *
+ * القاعدة الذهبية:
+ * ♥ (القلب) هو الترامب دائماً
+ * أعلى قلب يربح أي خدعة
  */
 object TrickRules {
-    
+
+    private const val PLAYERS_PER_TRICK = 4
+
     /**
-     * عدد اللاعبين في الخدعة الواحدة
+     * عدد اللاعبين في الخدعة
      */
-    fun getPlayersPerTrick(): Int = 4
-    
+    fun getPlayersPerTrick(): Int = PLAYERS_PER_TRICK
+
     /**
      * هل الخدعة اكتملت
      */
     fun isTrickComplete(trick: Trick): Boolean {
-        return trick.isComplete(getPlayersPerTrick())
+        return trick.isComplete(PLAYERS_PER_TRICK)
     }
-    
+
+    /**
+     * حلّ الخدعة بالكامل
+     * - يحسب الرابح
+     * - يثبت winnerId داخل Trick
+     */
+    fun resolveTrick(trick: Trick, trumpSuit: Suit = Suit.HEARTS): Int {
+        val winner = calculateWinner(trick, trumpSuit)
+        trick.winnerId = winner
+        return winner
+    }
+
     /**
      * حساب رابح الخدعة
-     * 
-     * القوانين:
-     * 1. القلب يربح non-قلب
-     * 2. أعلى قلب يربح قلب
-     * 3. نفس لون الأول يربح الباقي
-     * 4. نفس اللون، الأعلى يربح
      */
     fun calculateWinner(trick: Trick, trumpSuit: Suit = Suit.HEARTS): Int {
-        if (trick.cards.isEmpty()) return -1
-        
-        var winningCard = trick.cards[trick.playOrder.first()] ?: return -1
+        if (trick.cards.isEmpty() || trick.playOrder.isEmpty()) return -1
+
         var winnerId = trick.playOrder.first()
-        
+        var winningCard = trick.cards[winnerId] ?: return -1
+
         for (playerId in trick.playOrder.drop(1)) {
             val currentCard = trick.cards[playerId] ?: continue
-            
-            // Trump يربح non-trump
-            if (currentCard.suit == trumpSuit && winningCard.suit != trumpSuit) {
+
+            if (canBeat(
+                    card = currentCard,
+                    otherCard = winningCard,
+                    trickSuit = trick.trickSuit,
+                    trumpSuit = trumpSuit
+                )
+            ) {
                 winningCard = currentCard
                 winnerId = playerId
             }
-            // أعلى trump يربح trump
-            else if (currentCard.suit == trumpSuit && winningCard.suit == trumpSuit) {
-                if (currentCard.rank.value > winningCard.rank.value) {
-                    winningCard = currentCard
-                    winnerId = playerId
-                }
-            }
-            // Trick suit يربح non-trick, non-trump
-            else if (winningCard.suit != trumpSuit && currentCard.suit == trick.trickSuit) {
-                if (currentCard.rank.value > winningCard.rank.value) {
-                    winningCard = currentCard
-                    winnerId = playerId
-                }
-            }
-            // نفس اللون، الأعلى يربح
-            else if (currentCard.suit == winningCard.suit) {
-                if (currentCard.rank.value > winningCard.rank.value) {
-                    winningCard = currentCard
-                    winnerId = playerId
-                }
-            }
         }
-        
+
         return winnerId
     }
-    
+
     /**
-     * الترامب دائماً القلب
+     * الترامب دائماً قلب
      */
     fun getTrumpSuit(): Suit = Suit.HEARTS
-    
+
     /**
-     * هل الورقة ترامب (قلب)
+     * هل الورقة ترامب
      */
     fun isTrump(card: Card): Boolean = card.suit == getTrumpSuit()
-    
+
     /**
-     * هل الورقة الأولى تربح الورقة الثانية
+     * هل card تغلب otherCard
      */
     fun canBeat(
         card: Card,
@@ -92,24 +84,30 @@ object TrickRules {
         trickSuit: Suit?,
         trumpSuit: Suit = Suit.HEARTS
     ): Boolean {
+
         // Trump يربح non-trump
         if (card.suit == trumpSuit && otherCard.suit != trumpSuit) return true
-        
-        // أعلى trump يربح أقل trump
+
+        // أعلى trump يربح trump
         if (card.suit == trumpSuit && otherCard.suit == trumpSuit) {
             return card.rank.value > otherCard.rank.value
         }
-        
-        // Trick suit يربح non-trick, non-trump
-        if (card.suit == trickSuit && otherCard.suit != trickSuit && otherCard.suit != trumpSuit) {
+
+        // نفس لون الخدعة يربح غيره
+        if (
+            trickSuit != null &&
+            card.suit == trickSuit &&
+            otherCard.suit != trickSuit &&
+            otherCard.suit != trumpSuit
+        ) {
             return true
         }
-        
+
         // نفس اللون، الأعلى يربح
         if (card.suit == otherCard.suit) {
             return card.rank.value > otherCard.rank.value
         }
-        
+
         return false
     }
 }
