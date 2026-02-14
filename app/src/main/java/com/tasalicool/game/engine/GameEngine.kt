@@ -6,9 +6,13 @@ import kotlinx.coroutines.flow.StateFlow
 
 class GameEngine {
 
+    // ================= SUB ENGINES =================
+
     private val cardRules = CardRulesEngine()
-    private val scoring = ScoringEngine()
-    private val bidding = BiddingEngine()
+    private val scoringEngine = ScoringEngine()
+    private val biddingEngine = BiddingEngine()
+
+    // ================= STATE =================
 
     private val _gameState = MutableStateFlow<Game?>(null)
     val gameState: StateFlow<Game?> = _gameState
@@ -16,7 +20,7 @@ class GameEngine {
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
 
-    /* ======================= INIT ======================= */
+    // ================= INIT =================
 
     fun initializeGame(
         team1: Team,
@@ -33,12 +37,13 @@ class GameEngine {
         val game = Game(
             team1 = team1,
             team2 = team2,
-            players = players,
-            dealerIndex = dealerIndex,
-            currentPlayerToPlayIndex = (dealerIndex + 1) % 4
+            players = players
         )
 
+        game.startDealing()
+        setDealer(game, dealerIndex)
         dealCards(game)
+
         _gameState.value = game
     }
 
@@ -54,114 +59,118 @@ class GameEngine {
         )
     }
 
-    fun restartGame() {
-        _gameState.value?.let {
-            it.resetForNewRound()
-            dealCards(it)
-            _gameState.value = it
-        }
-    }
-
-    /* ======================= DEAL ======================= */
+    // ================= DEAL =================
 
     private fun dealCards(game: Game) {
         val deck = Card.createGameDeck().shuffled()
 
         game.players.forEach { it.hand.clear() }
 
-        deck.chunked(13).forEachIndexed { i, cards ->
-            game.players[i].hand.addAll(cards)
-            game.players[i].sortHand()
+        deck.chunked(13).forEachIndexed { index, cards ->
+            game.players[index].hand.addAll(cards)
+            game.players[index].sortHand()
         }
 
-        game.gamePhase = GamePhase.BIDDING
-        game.biddingPhase = BiddingPhase.PLAYER1_BIDDING
+        game.startBidding()
     }
 
-    /* ======================= BIDDING ======================= */
+    // ================= BIDDING =================
 
     fun placeBid(playerIndex: Int, bid: Int): Boolean {
         val game = _gameState.value ?: return false
+
+        if (playerIndex != game.currentPlayerIndex) {
+            emitError("مش دورك بالبيد")
+            return false
+        }
+
         val player = game.players[playerIndex]
 
-        val minBid = scoring.getMinimumBid(
-            maxOf(game.team1.score, game.team2.score)
-        )
-
-        if (!cardRules.validateBid(bid, player.hand.size, minBid)) {
-            _error.value = "Bid غير صالح"
+        if (!biddingEngine.isValidBid(bid, player, game)) {
+            emitError("Bid غير صالح")
             return false
         }
 
         player.bid = bid
         game.advanceBidding()
 
-        if (game.biddingPhase == BiddingPhase.COMPLETE) {
-            val total = game.players.sumOf { it.bid }
-            if (total < game.getMinimumTotalBids()) {
-                restartGame()
-            } else {
-                game.gamePhase = GamePhase.PLAYING
-                game.currentPlayerToPlayIndex = game.getRightOfDealerIndex()
-            }
+        if (biddingEngine.isBiddingComplete(game)) {
+            game.startPlaying()
         }
 
         _gameState.value = game
         return true
     }
 
-    /* ======================= PLAY ======================= */
+    // ================= PLAY =================
 
     fun playCard(playerIndex: Int, card: Card): Boolean {
         val game = _gameState.value ?: return false
-        val player = game.players[playerIndex]
 
-        if (playerIndex != game.currentPlayerToPlayIndex) {
-            _error.value = "مش دورك"
+        if (game.gamePhase != GamePhase.PLAYING) {
+            emitError("اللعب غير مسموح الآن")
             return false
         }
 
-        val trick = game.currentTrick()
+        if (playerIndex != game.currentPlayerIndex) {
+            emitError("مش دورك")
+            return false
+        }
 
-        if (!cardRules.canPlayCard(card, player, trick)) {
-            _error.value = "كرت غير مسموح"
+        val player = game.players[playerIndex]
+        val currentTrick = game.tricks.lastOrNull()
+            ?: Trick(game.currentTrickNumber).also { game.tricks.add(it) }
+
+        if (!cardRules.canPlayCard(card, player, currentTrick)) {
+            emitError("كرت غير مسموح")
             return false
         }
 
         player.removeCard(card)
-        trick.addCard(playerIndex, card)
+        currentTrick.play(playerIndex, card)
 
-        if (trick.isComplete(4)) {
-            val winner = cardRules.calculateTrickWinner(trick)
-            game.getPlayerById(winner)?.tricksWon++
-            game.currentPlayerToPlayIndex = winner
+        if (currentTrick.isComplete(game.players.size)) {
+            val winnerIndex = cardRules.calculateTrickWinner(currentTrick)
+            game.endTrick(winnerIndex)
 
             if (game.tricks.size == 13) {
                 endRound(game)
             }
         } else {
-            game.currentPlayerToPlayIndex = (playerIndex + 1) % 4
+            game.advanceTurn()
         }
 
         _gameState.value = game
         return true
     }
 
-    /* ======================= ROUND END ======================= */
+    // ================= ROUND END =================
 
     private fun endRound(game: Game) {
-        game.applyScores(scoring)
+        scoringEngine.applyScores(game)
 
         when {
-            game.team1.isWinner -> game.finish(1)
-            game.team2.isWinner -> game.finish(2)
-            else -> restartGame()
+            game.team1.isWinner -> game.endGame(game.team1.id)
+            game.team2.isWinner -> game.endGame(game.team2.id)
+            else -> {
+                game.endRound()
+                game.startNextRound()
+                dealCards(game)
+            }
         }
-
-        _gameState.value = game
     }
 
-    /* ======================= HELPERS ======================= */
+    // ================= HELPERS =================
+
+    private fun setDealer(game: Game, dealerIndex: Int) {
+        repeat(dealerIndex) {
+            game.startNextRound()
+        }
+    }
+
+    private fun emitError(message: String) {
+        _error.value = message
+    }
 
     fun clearError() {
         _error.value = null
