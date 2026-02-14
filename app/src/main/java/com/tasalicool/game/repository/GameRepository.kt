@@ -1,29 +1,41 @@
 package com.tasalicool.game.repository
 
-import com.tasalicool.game.data.*
+import com.tasalicool.game.engine.GameEngine
+import com.tasalicool.game.model.Card
+import kotlinx.coroutines.flow.StateFlow
 
 class GameRepository(
-    private val gameDao: GameDao,
-    private val playerStatsDao: PlayerStatsDao
+    private val engine: GameEngine = GameEngine()
 ) {
 
-    suspend fun saveGame(game: GameEntity) {
-        gameDao.insertGame(game)
+    val gameState = engine.gameState
+    val error = engine.error
+
+    fun startGame(team1: String, team2: String) {
+        engine.initializeDefaultGame(team1, team2)
     }
 
-    suspend fun saveRound(round: RoundEntity) {
-        gameDao.insertRound(round)
+    fun restartGame() {
+        engine.restartGame()
     }
 
-    suspend fun savePlayer(player: PlayerEntity) {
-        gameDao.insertPlayer(player)
+    fun placeBid(playerIndex: Int, bid: Int) {
+        engine.gameState.value?.let {
+            engine.placeBid(it, playerIndex, bid)
+        }
     }
 
-    suspend fun savePlayerStats(stats: PlayerStatsEntity) {
-        playerStatsDao.insertStats(stats)
+    fun playCard(playerIndex: Int, card: Card) {
+        engine.gameState.value?.let {
+            engine.playCard(it, playerIndex, card)
+        }
     }
 
-    fun getAllGames() = gameDao.getAllGames()
+    fun getValidBids(playerIndex: Int): List<Int> =
+        engine.getValidBids(playerIndex)
 
-    fun getTopPlayers() = playerStatsDao.getTopPlayers()
+    fun getValidCards(playerIndex: Int): List<Card> =
+        engine.getValidCards(playerIndex)
+
+    fun clearError() = engine.clearError()
 }
