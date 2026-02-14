@@ -151,11 +151,26 @@ class MultiplayerManager {
         serverConnection?.send(command)
     }
 
-    /* ==================== AI SUPPORT ==================== */
+    /* ==================== LOCAL / AI SUPPORT ==================== */
 
-    fun sendFromAI(command: NetworkCommand) {
+    /**
+     * تُستخدم للاعب المحلي أو AI
+     * تمرّ بنفس مسار أوامر الشبكة
+     */
+    fun sendLocalCommand(
+        playerId: String,
+        command: NetworkCommand
+    ) {
         _commands.tryEmit(command)
-        broadcast(command)
+
+        if (_connectionState.value == ConnectionState.HOSTING) {
+            broadcast(command)
+        }
+    }
+
+    // للتوافق مع كودك القديم (اختياري)
+    fun sendFromAI(command: NetworkCommand) {
+        sendLocalCommand("AI", command)
     }
 
     /* ==================== CLEAN ==================== */
