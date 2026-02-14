@@ -2,63 +2,59 @@ package com.tasalicool.game.rules
 
 import com.tasalicool.game.model.Card
 import com.tasalicool.game.model.Player
-import com.tasalicool.game.model.Suit
 import com.tasalicool.game.model.Trick
 
 /**
  * PlayRules - قوانين لعب الأوراق
- * 
- * القاعدة الذهبية: يجب تتبع اللون إن أمكن
+ *
+ * القاعدة الذهبية:
+ * يجب تتبع لون الخدعة إن أمكن
  */
 object PlayRules {
-    
+
     /**
      * التحقق من صحة لعب الورقة
-     * @param card الورقة المراد لعبها
-     * @param player اللاعب
-     * @param trick الخدعة الحالية
-     * @param playedCards الأوراق الملعوبة في هذه الخدعة
-     * @return صحيح أو خطأ
      */
     fun canPlayCard(
         card: Card,
         player: Player,
-        trick: Trick,
-        playedCards: List<Card>
+        trick: Trick
     ): Boolean {
-        // أول لاعب يلعب أي ورقة
-        if (playedCards.isEmpty()) return true
-        
+
+        // أول لاعب في الخدعة يلعب أي ورقة
+        if (trick.cards.isEmpty()) return true
+
         val trickSuit = trick.trickSuit ?: return true
-        
-        // يجب تتبع اللون إن أمكن
-        if (player.canFollowSuit(trickSuit)) {
-            return card.suit == trickSuit
+
+        // إذا اللاعب قادر يتبع اللون → يجب يتبعه
+        return if (player.canFollowSuit(trickSuit)) {
+            card.suit == trickSuit
+        } else {
+            true
         }
-        
-        return true
     }
-    
+
     /**
-     * الحصول على الأوراق الصحيحة للعب
+     * إرجاع الأوراق المسموح لعبها
      */
-    fun getValidCards(player: Player, trick: Trick): List<Card> {
-        if (trick.cards.isEmpty()) return player.hand.toList()
-        
+    fun getValidCards(
+        player: Player,
+        trick: Trick
+    ): List<Card> {
+
+        // أول لاعب
+        if (trick.cards.isEmpty()) {
+            return player.hand.toList()
+        }
+
         val trickSuit = trick.trickSuit ?: return player.hand.toList()
-        
-        val cardsOfSuit = player.hand.filter { it.suit == trickSuit }
-        return if (cardsOfSuit.isNotEmpty()) {
-            cardsOfSuit
+
+        val followSuitCards = player.hand.filter { it.suit == trickSuit }
+
+        return if (followSuitCards.isNotEmpty()) {
+            followSuitCards
         } else {
             player.hand.toList()
         }
-    }
-    
-    /**
-     * هل يجب تتبع اللون
-     */
-    fun mustFollowSuit(player: Player, trickSuit: Suit): Boolean {
-        return player.canFollowSuit(trickSuit)
     }
 }
