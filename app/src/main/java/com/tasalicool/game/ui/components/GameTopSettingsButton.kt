@@ -9,8 +9,13 @@ import androidx.compose.ui.unit.sp
  * GameTopSettingsButton - زر الإعدادات في الأعلى
  */
 @Composable
-fun GameTopSettingsButton(onClick: () -> Unit) {
+fun GameTopSettingsButton(
+    onClick: () -> Unit
+) {
     IconButton(onClick = onClick) {
-        Text("⚙️", fontSize = 20.sp)
+        Text(
+            text = "⚙️",
+            fontSize = 20.sp
+        )
     }
 }
