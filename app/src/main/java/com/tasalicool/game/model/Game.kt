@@ -1,99 +1,109 @@
 package com.tasalicool.game.model
 
-class Game(
+import java.util.UUID
+
+/**
+ * Game - Orchestrator
+ *
+ * Responsible ONLY for:
+ * - Holding game state
+ * - Tracking turns & phases
+ * - Delegating logic to external engines
+ *
+ * NO rules, NO calculations, NO decisions
+ */
+data class Game(
+    val id: String = UUID.randomUUID().toString(),
+
+    val team1: Team,
+    val team2: Team,
     val players: List<Player>,
-    val teams: List<Team>
+
+    // ================= STATE =================
+
+    var gamePhase: GamePhase = GamePhase.DEALING,
+    var biddingPhase: BiddingPhase = BiddingPhase.WAITING,
+
+    var currentRound: Int = 1,
+    var currentTrick: Int = 1,
+
+    var dealerIndex: Int = 0,
+    var currentPlayerIndex: Int = 0,
+
+    var isGameOver: Boolean = false,
+    var winningTeamId: Int? = null
 ) {
 
-    init {
-        require(players.size == 4) { "Game must have exactly 4 players" }
-        require(teams.size == 2) { "Game must have exactly 2 teams" }
+    // ================= GETTERS =================
+
+    fun currentPlayer(): Player =
+        players[currentPlayerIndex]
+
+    fun dealerPlayer(): Player =
+        players[dealerIndex]
+
+    fun rightOfDealer(): Player =
+        players[(dealerIndex + 1) % players.size]
+
+    fun nextPlayerIndex(): Int =
+        (currentPlayerIndex + 1) % players.size
+
+    // ================= PHASE TRANSITIONS =================
+
+    fun startDealing() {
+        gamePhase = GamePhase.DEALING
+        biddingPhase = BiddingPhase.WAITING
+        currentTrick = 1
+        currentPlayerIndex = rightOfDealer().position
     }
 
-    /* ================= GAME STATE ================= */
-
-    var currentPhase: GamePhase = GamePhase.SETUP
-        private set
-
-    var currentPlayerIndex: Int = 0
-        private set
-
-    var currentTrick: Trick? = null
-        private set
-
-    var roundNumber: Int = 1
-        private set
-
-    val currentPlayer: Player
-        get() = players[currentPlayerIndex]
-
-    /* ================= GAME FLOW ================= */
-
-    fun startGame() {
-        currentPhase = GamePhase.BIDDING
-        currentPlayerIndex = 0
+    fun startBidding() {
+        gamePhase = GamePhase.BIDDING
+        biddingPhase = BiddingPhase.ACTIVE
+        currentPlayerIndex = rightOfDealer().position
     }
 
-    fun startRound() {
-        teams.forEach { it.resetRound() }
-        roundNumber++
-        currentPhase = GamePhase.BIDDING
+    fun startPlaying() {
+        gamePhase = GamePhase.PLAYING
+        currentTrick = 1
+        currentPlayerIndex = rightOfDealer().position
     }
 
-    fun startTrick() {
-        currentTrick = Trick(startingPlayer = currentPlayer)
-        currentPhase = GamePhase.PLAYING
+    fun endTrick(nextLeaderIndex: Int) {
+        currentPlayerIndex = nextLeaderIndex
+        currentTrick++
     }
 
-    /* ================= PLAY ================= */
-
-    fun playCard(player: Player, card: Card): Boolean {
-        if (currentPhase != GamePhase.PLAYING) return false
-        if (player != currentPlayer) return false
-        if (!player.removeCard(card)) return false
-
-        currentTrick?.playCard(player, card)
-
-        moveToNextPlayer()
-        return true
+    fun endRound() {
+        gamePhase = GamePhase.ROUND_END
     }
 
-    /* ================= TRICK ================= */
+    fun startNextRound() {
+        dealerIndex = (dealerIndex + 1) % players.size
+        currentRound++
+        startDealing()
+    }
 
-    fun finishTrick() {
-        val trick = currentTrick ?: return
+    fun endGame(winnerTeamId: Int) {
+        this.winningTeamId = winnerTeamId
+        gamePhase = GamePhase.GAME_END
+        isGameOver = true
+    }
 
-        val winner = trick.getWinner()   // 👈 المنطق داخل Trick
-        winner.tricksWon++
+    // ================= TURN CONTROL =================
 
-        currentPlayerIndex = players.indexOf(winner)
-        currentTrick = null
+    fun advanceTurn() {
+        currentPlayerIndex = nextPlayerIndex()
+    }
 
-        if (isRoundFinished()) {
-            finishRound()
-        } else {
-            startTrick()
+    // ================= STATUS =================
+
+    fun statusText(): String =
+        when (gamePhase) {
+            GamePhase.DEALING   -> "Dealing - Round $currentRound"
+            GamePhase.BIDDING   -> "Bidding"
+            GamePhase.PLAYING   -> "Playing - Trick $currentTrick"
+            GamePhase.ROUND_END -> "Round End"
+            GamePhase.GAME_END  -> "Game Over"
         }
-    }
-
-    /* ================= ROUND ================= */
-
-    private fun finishRound() {
-        teams.forEach { team ->
-            if (team.isBidMet) {
-                team.players.forEach { it.score += it.tricksWon }
-            }
-        }
-        currentPhase = GamePhase.ROUND_END
-    }
-
-    private fun isRoundFinished(): Boolean {
-        return players.all { it.hand.isEmpty() }
-    }
-
-    /* ================= TURN ================= */
-
-    private fun moveToNextPlayer() {
-        currentPlayerIndex = (currentPlayerIndex + 1) % players.size
-    }
 }
