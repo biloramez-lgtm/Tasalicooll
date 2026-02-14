@@ -20,33 +20,49 @@ class GameViewModel(
         observeRepository()
     }
 
-    /* ================= OBSERVE REPOSITORY ================= */
-
     private fun observeRepository() {
+
         viewModelScope.launch {
             repository.gameState.collect { game ->
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     game = game
                 )
+
+                if (game?.isGameOver == true) {
+                    sendEvent(GameEvent.NavigateToGameOver)
+                }
             }
         }
 
         viewModelScope.launch {
             repository.error.collect { error ->
-                _uiState.value = _uiState.value.copy(
-                    errorMessage = error
-                )
+                error?.let {
+                    _uiState.value = _uiState.value.copy(
+                        errorMessage = it,
+                        event = GameEvent.ShowSnackbar(it)
+                    )
+                }
             }
         }
     }
 
+    /* ================= EVENTS ================= */
+
+    private fun sendEvent(event: GameEvent) {
+        _uiState.value = _uiState.value.copy(event = event)
+    }
+
+    fun consumeEvent() {
+        _uiState.value = _uiState.value.copy(event = null)
+    }
+
     /* ================= GAME FLOW ================= */
 
-    fun startGame(team1Name: String, team2Name: String) {
+    fun startGame(team1: String, team2: String) {
         _uiState.value = _uiState.value.copy(isLoading = true)
         viewModelScope.launch {
-            repository.startGame(team1Name, team2Name)
+            repository.startGame(team1, team2)
         }
     }
 
@@ -68,10 +84,9 @@ class GameViewModel(
     fun playCard(playerIndex: Int, card: Card) {
         viewModelScope.launch {
             repository.playCard(playerIndex, card)
+            sendEvent(GameEvent.PlayCardAnimation)
         }
     }
-
-    /* ================= ERROR ================= */
 
     fun clearError() {
         _uiState.value = _uiState.value.copy(errorMessage = null)
