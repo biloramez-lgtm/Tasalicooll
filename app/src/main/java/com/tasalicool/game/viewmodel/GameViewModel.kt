@@ -2,6 +2,7 @@ package com.tasalicool.game.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.tasalicool.game.model.GamePhase
 import com.tasalicool.game.repository.GameRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -60,21 +61,38 @@ class GameViewModel(
                 repository.error
             ) { game, error ->
 
-                _uiState.value.copy(
+                GameUiState(
                     isLoading = game == null,
                     game = game,
                     errorMessage = error,
 
-                    isMyTurn = game?.let {
-                        it.currentPlayerToPlayIndex == 0 // لاحقًا: playerId
-                    } ?: false,
+                    /* -------- UI Helpers -------- */
 
-                    canBid = game?.gamePhase?.name == "BIDDING",
-                    canPlayCard = game?.gamePhase?.name == "PLAYING"
+                    isMyTurn = game?.currentPlayerToPlayIndex == 0, // لاحقًا playerId
+                    canBid = game?.gamePhase == GamePhase.BIDDING,
+                    canPlayCard = game?.gamePhase == GamePhase.PLAYING,
+
+                    multiplayerState = _uiState.value.multiplayerState
                 )
 
             }.collect { newState ->
+
                 _uiState.value = newState
+
+                /* -------- Effects -------- */
+
+                if (newState.game?.isGameOver == true) {
+                    _effect.emit(GameEffect.NavigateToGameOver)
+                }
+
+                if (newState.errorMessage != null) {
+                    _effect.emit(
+                        GameEffect.ShowSnackbar(
+                            message = newState.errorMessage,
+                            isError = true
+                        )
+                    )
+                }
             }
         }
     }
@@ -105,6 +123,10 @@ class GameViewModel(
                 )
             )
         }
+
+        viewModelScope.launch {
+            _effect.emit(GameEffect.ShowSnackbar("Room created"))
+        }
     }
 
     private fun joinRoom(roomCode: String) {
@@ -118,11 +140,19 @@ class GameViewModel(
                 )
             )
         }
+
+        viewModelScope.launch {
+            _effect.emit(GameEffect.PlayerConnected)
+        }
     }
 
     private fun leaveRoom() {
         _uiState.update {
             it.copy(multiplayerState = MultiplayerState())
+        }
+
+        viewModelScope.launch {
+            _effect.emit(GameEffect.PlayerDisconnected)
         }
     }
 }
