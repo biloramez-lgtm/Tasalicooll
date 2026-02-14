@@ -5,6 +5,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.tasalicool.game.network.ConnectionState
 import com.tasalicool.game.ui.screens.*
 
 sealed class Screen(val route: String) {
@@ -18,12 +19,13 @@ sealed class Screen(val route: String) {
 fun AppNavGraph(
     navController: NavHostController = rememberNavController()
 ) {
+
     NavHost(
         navController = navController,
         startDestination = Screen.Home.route
     ) {
 
-        // HOME
+        // ================= HOME =================
         composable(Screen.Home.route) {
             HomeScreen(
                 onSinglePlayerClick = {
@@ -38,17 +40,36 @@ fun AppNavGraph(
             )
         }
 
-        // GAME
+        // ================= GAME =================
         composable(Screen.Game.route) {
-            GameScreen() // تأكد إنها موجودة
+            GameScreen(
+                onBackClick = {
+                    navController.popBackStack()
+                }
+            )
         }
 
-        // MULTIPLAYER
+        // ================= MULTIPLAYER =================
         composable(Screen.Multiplayer.route) {
-            MultiplayerScreen()
+
+            MultiplayerScreen(
+                onGameStart = {
+                    // لما يضغط Start Game
+                    navController.navigate(Screen.Game.route)
+                },
+                onBackClick = {
+                    navController.popBackStack()
+                },
+                connectionState = ConnectionState.DISCONNECTED,
+                connectedPlayers = emptyList(),
+                onHostGame = { /* TODO networking */ },
+                onJoinGame = { _, _ -> /* TODO networking */ },
+                onPlayerReady = { /* TODO */ },
+                onDisconnect = { }
+            )
         }
 
-        // SETTINGS
+        // ================= SETTINGS =================
         composable(Screen.Settings.route) {
             SettingsDialog(
                 onDismiss = {
