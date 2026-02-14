@@ -1,17 +1,23 @@
 package com.tasalicool.game.viewmodel
 
 data class MultiplayerState(
+
+    /* -------- General -------- */
     val enabled: Boolean = false,
     val isHost: Boolean = false,
-    val connectedPlayers: Int = 1,
-    val roomCode: String? = null,
-    val connectionStatus: ConnectionStatus = ConnectionStatus.IDLE
-)
 
-enum class ConnectionStatus {
-    IDLE,
-    CREATING_ROOM,
-    WAITING_FOR_PLAYERS,
-    CONNECTED,
-    ERROR
-}
+    /* -------- Players -------- */
+    val connectedPlayers: Int = 1,
+    val maxPlayers: Int = 2,
+
+    /* -------- Room -------- */
+    val roomCode: String? = null,
+
+    /* -------- Connection -------- */
+    val status: ConnectionStatus = ConnectionStatus.IDLE,
+    val isSyncing: Boolean = false,
+    val lastSyncTime: Long? = null,
+
+    /* -------- Error -------- */
+    val errorMessage: String? = null
+)
