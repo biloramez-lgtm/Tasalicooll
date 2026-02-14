@@ -1,5 +1,6 @@
 package com.tasalicool.game.engine
 
+import com.tasalicool.game.engine.ai.AiEngine
 import com.tasalicool.game.model.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -11,6 +12,7 @@ class GameEngine {
     private val cardRules = CardRulesEngine()
     private val scoringEngine = ScoringEngine()
     private val biddingEngine = BiddingEngine()
+    private val aiEngine = AiEngine()
 
     // ================= STATE =================
 
@@ -45,6 +47,7 @@ class GameEngine {
         dealCards(game)
 
         _gameState.value = game
+        playAiTurnIfNeeded()
     }
 
     fun initializeDefaultGame(team1Name: String, team2Name: String) {
@@ -99,6 +102,7 @@ class GameEngine {
         }
 
         _gameState.value = game
+        playAiTurnIfNeeded()
         return true
     }
 
@@ -118,20 +122,19 @@ class GameEngine {
         }
 
         val player = game.players[playerIndex]
-        val currentTrick = game.tricks.lastOrNull()
-            ?: Trick(game.currentTrickNumber).also { game.tricks.add(it) }
+        val trick = game.getOrCreateCurrentTrick()
 
-        if (!cardRules.canPlayCard(card, player, currentTrick)) {
+        if (!cardRules.canPlayCard(card, player, trick)) {
             emitError("كرت غير مسموح")
             return false
         }
 
         player.removeCard(card)
-        currentTrick.play(playerIndex, card)
+        trick.play(playerIndex, card)
 
-        if (currentTrick.isComplete(game.players.size)) {
-            val winnerIndex = cardRules.calculateTrickWinner(currentTrick)
-            game.endTrick(winnerIndex)
+        if (trick.isComplete(game.players.size)) {
+            val winner = cardRules.calculateTrickWinner(trick)
+            game.endTrick(winner)
 
             if (game.tricks.size == 13) {
                 endRound(game)
@@ -141,7 +144,57 @@ class GameEngine {
         }
 
         _gameState.value = game
+        playAiTurnIfNeeded()
         return true
+    }
+
+    // ================= AI =================
+
+    private fun playAiTurnIfNeeded() {
+        val game = _gameState.value ?: return
+        val player = game.players[game.currentPlayerIndex]
+
+        if (!player.isAI || game.isGameOver) return
+
+        when (game.gamePhase) {
+            GamePhase.BIDDING -> handleAiBid(game, player)
+            GamePhase.PLAYING -> handleAiPlay(game, player)
+            else -> Unit
+        }
+    }
+
+    private fun handleAiBid(game: Game, player: Player) {
+        val minBid = biddingEngine.getMinimumBid(game)
+
+        val bid = aiEngine.decideBid(
+            hand = player.hand,
+            teamScore = game.getTeamByPlayer(player.id)!!.score,
+            opponentScore = game.getOpponentTeam(player.id)!!.score,
+            minimumBid = minBid
+        )
+
+        placeBid(game.currentPlayerIndex, bid)
+    }
+
+    private fun handleAiPlay(game: Game, player: Player) {
+        val trick = game.getOrCreateCurrentTrick()
+        val validCards = cardRules.getValidPlayableCards(player, trick)
+
+        val card = aiEngine.decideCard(
+            hand = player.hand,
+            validCards = validCards,
+            trickSuit = trick.trickSuit,
+            playedCards = trick.cards,
+            trickNumber = game.currentTrick,
+            teamScore = game.getTeamByPlayer(player.id)!!.score,
+            opponentScore = game.getOpponentTeam(player.id)!!.score,
+            tricksBidded = game.getTeamByPlayer(player.id)!!.getTotalBid(),
+            tricksWon = game.getTeamByPlayer(player.id)!!.getTotalTricksWon(),
+            currentTrickWinnerId = trick.currentWinnerId,
+            playerId = player.id
+        )
+
+        playCard(game.currentPlayerIndex, card)
     }
 
     // ================= ROUND END =================
@@ -163,9 +216,7 @@ class GameEngine {
     // ================= HELPERS =================
 
     private fun setDealer(game: Game, dealerIndex: Int) {
-        repeat(dealerIndex) {
-            game.startNextRound()
-        }
+        repeat(dealerIndex) { game.startNextRound() }
     }
 
     private fun emitError(message: String) {
