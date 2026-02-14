@@ -1,14 +1,16 @@
 package com.tasalicool.game.viewmodel
 
-import com.tasalicool.game.model.Card
-
 sealed class GameEvent {
 
-    object StartGame : GameEvent()
-    object RestartGame : GameEvent()
+    /* -------- Navigation -------- */
+    object NavigateToGameOver : GameEvent()
 
-    data class PlaceBid(val value: Int) : GameEvent()
+    /* -------- UI Messages -------- */
+    data class ShowSnackbar(val message: String) : GameEvent()
 
-    data class PlayCard(val card: Card) : GameEvent()
+    /* -------- Retry -------- */
+    object Retry : GameEvent()
 
+    /* -------- Animations / Effects -------- */
+    object PlayCardAnimation : GameEvent()
 }
