@@ -43,7 +43,7 @@ class MultiplayerManager {
 
     private var serverSocket: ServerSocket? = null
     private val clients = mutableMapOf<String, ClientConnection>()
-    private var serverRunning = false
+    @Volatile private var serverRunning = false
 
     fun startServer(port: Int = DEFAULT_PORT): Boolean {
         return try {
@@ -53,8 +53,12 @@ class MultiplayerManager {
 
             thread(name = "ServerThread", isDaemon = true) {
                 while (serverRunning) {
-                    val socket = serverSocket?.accept() ?: break
-                    addClient(socket)
+                    try {
+                        val socket = serverSocket?.accept() ?: break
+                        addClient(socket)
+                    } catch (_: Exception) {
+                        break
+                    }
                 }
             }
             true
@@ -79,6 +83,7 @@ class MultiplayerManager {
     }
 
     private fun onClientMessage(playerId: String, command: NetworkCommand) {
+
         if (command is NetworkCommand.PlayerJoined) {
             val player = NetworkPlayer(
                 id = playerId,
@@ -86,25 +91,33 @@ class MultiplayerManager {
                 address = playerId,
                 status = PlayerStatus.CONNECTED
             )
+
             _players.value = _players.value + (playerId to player)
             _events.tryEmit(NetworkEvent.PlayerConnected(player))
         }
 
         _commands.tryEmit(command)
 
+        // Broadcast للكل ما عدا المرسل
         clients.forEach { (id, conn) ->
-            if (id != playerId) conn.send(command)
+            if (id != playerId) {
+                conn.sendSafe(command)
+            }
         }
     }
 
     private fun removeClient(playerId: String) {
-        clients.remove(playerId)
-        _players.value = _players.value - playerId
-        _events.tryEmit(NetworkEvent.PlayerDisconnected(playerId))
+        clients.remove(playerId)?.close()
+
+        if (_players.value.containsKey(playerId)) {
+            _players.value = _players.value - playerId
+            _events.tryEmit(NetworkEvent.PlayerDisconnected(playerId))
+        }
     }
 
     fun broadcast(command: NetworkCommand) {
-        clients.values.forEach { it.send(command) }
+        if (!serverRunning) return
+        clients.values.forEach { it.sendSafe(command) }
     }
 
     /* ==================== CLIENT ==================== */
@@ -140,6 +153,7 @@ class MultiplayerManager {
             sendToServer(
                 NetworkCommand.PlayerJoined(playerId, playerName)
             )
+
             true
         } catch (e: Exception) {
             _connectionState.value = ConnectionState.ERROR
@@ -148,15 +162,12 @@ class MultiplayerManager {
     }
 
     fun sendToServer(command: NetworkCommand) {
-        serverConnection?.send(command)
+        if (_connectionState.value != ConnectionState.CONNECTED) return
+        serverConnection?.sendSafe(command)
     }
 
     /* ==================== LOCAL / AI SUPPORT ==================== */
 
-    /**
-     * تُستخدم للاعب المحلي أو AI
-     * تمرّ بنفس مسار أوامر الشبكة
-     */
     fun sendLocalCommand(
         playerId: String,
         command: NetworkCommand
@@ -168,7 +179,6 @@ class MultiplayerManager {
         }
     }
 
-    // للتوافق مع كودك القديم (اختياري)
     fun sendFromAI(command: NetworkCommand) {
         sendLocalCommand("AI", command)
     }
@@ -177,6 +187,7 @@ class MultiplayerManager {
 
     fun disconnect() {
         serverRunning = false
+
         clients.values.forEach { it.close() }
         clients.clear()
 
@@ -204,26 +215,33 @@ private class ClientConnection(
 
     override fun run() {
         try {
-            while (true) {
+            while (!socket.isClosed) {
                 val line = reader.readLine() ?: break
                 val cmd = json.decodeFromString<NetworkCommand>(line)
                 onMessage(id, cmd)
             }
+        } catch (_: Exception) {
         } finally {
             close()
             onDisconnect(id)
         }
     }
 
-    fun send(cmd: NetworkCommand) {
-        writer.apply {
-            write(json.encodeToString(cmd))
-            newLine()
-            flush()
+    fun sendSafe(cmd: NetworkCommand) {
+        try {
+            if (!socket.isClosed) {
+                writer.write(json.encodeToString(cmd))
+                writer.newLine()
+                writer.flush()
+            }
+        } catch (_: Exception) {
+            close()
         }
     }
 
-    fun close() = socket.close()
+    fun close() {
+        try { socket.close() } catch (_: Exception) {}
+    }
 }
 
 private class ServerConnection(
@@ -238,23 +256,31 @@ private class ServerConnection(
 
     override fun run() {
         try {
-            while (true) {
+            while (!socket.isClosed) {
                 val line = reader.readLine() ?: break
-                onMessage(json.decodeFromString(line))
+                val cmd = json.decodeFromString<NetworkCommand>(line)
+                onMessage(cmd)
             }
+        } catch (_: Exception) {
         } finally {
             close()
             onDisconnect()
         }
     }
 
-    fun send(cmd: NetworkCommand) {
-        writer.apply {
-            write(json.encodeToString(cmd))
-            newLine()
-            flush()
+    fun sendSafe(cmd: NetworkCommand) {
+        try {
+            if (!socket.isClosed) {
+                writer.write(json.encodeToString(cmd))
+                writer.newLine()
+                writer.flush()
+            }
+        } catch (_: Exception) {
+            close()
         }
     }
 
-    fun close() = socket.close()
+    fun close() {
+        try { socket.close() } catch (_: Exception) {}
+    }
 }
