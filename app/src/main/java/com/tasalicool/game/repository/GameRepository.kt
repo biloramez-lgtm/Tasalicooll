@@ -7,6 +7,8 @@ import com.tasalicool.game.network.ConnectionState
 import com.tasalicool.game.network.NetworkPlayer
 import com.tasalicool.game.network.impl.LocalMultiplayerManager
 import com.tasalicool.game.rules.*
+import com.tasalicool.game.data.GameDao              // 👈 جديد
+import com.tasalicool.game.mapper.toEntity          // 👈 جديد
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 
@@ -14,7 +16,8 @@ class GameRepository(
     private val engine: GameEngine = GameEngine(),
     private val aiEngine: AiEngine = AiEngine(),
     private val multiplayerManager: LocalMultiplayerManager = LocalMultiplayerManager(),
-    private val gameHistoryManager: GameHistoryManager = GameHistoryManager()
+    private val gameHistoryManager: GameHistoryManager = GameHistoryManager(),
+    private val gameDao: GameDao? = null            // 👈 جديد (اختياري)
 ) {
 
     // ==================== COROUTINE SCOPE ====================
@@ -175,18 +178,13 @@ class GameRepository(
                 when (currentGame.gamePhase) {
 
                     GamePhase.BIDDING -> {
-
                         val minBid = BiddingRules.getMinimumBid(
-                            maxOf(
-                                currentGame.team1.score,
-                                currentGame.team2.score
-                            )
+                            maxOf(currentGame.team1.score, currentGame.team2.score)
                         )
 
                         val bid = aiEngine.decideBid(
                             hand = player.hand,
-                            teamScore = currentGame
-                                .getTeamByPlayer(index)?.score ?: 0,
+                            teamScore = currentGame.getTeamByPlayer(index)?.score ?: 0,
                             opponentScore = 0,
                             minimumBid = minBid
                         )
@@ -195,7 +193,6 @@ class GameRepository(
                     }
 
                     GamePhase.PLAYING -> {
-
                         val validCards = getValidCards(index)
 
                         if (validCards.isNotEmpty()) {
@@ -213,8 +210,24 @@ class GameRepository(
 
                 _gameState.value = currentGame
 
-                if (currentGame.gamePhase == GamePhase.GAME_END)
+                if (currentGame.gamePhase == GamePhase.GAME_END) {
+                    saveGameToDatabase(currentGame)   // 👈 حفظ تلقائي
                     break
+                }
+            }
+        }
+    }
+
+    // ==================== DATABASE SAVE ====================
+
+    private fun saveGameToDatabase(game: Game) {
+
+        val dao = gameDao ?: return
+
+        repositoryScope.launch {
+            try {
+                dao.insertGame(game.toEntity())
+            } catch (_: Exception) {
             }
         }
     }
