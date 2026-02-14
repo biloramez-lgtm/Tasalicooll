@@ -23,6 +23,14 @@ class GameEngine {
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
 
+    // ================= NETWORK MODE =================
+
+    private var isNetworkClientMode = false
+
+    fun enableNetworkClientMode() {
+        isNetworkClientMode = true
+    }
+
     // ================= INIT =================
 
     fun initializeGame(
@@ -81,6 +89,8 @@ class GameEngine {
     // ================= BIDDING =================
 
     fun placeBid(playerIndex: Int, bid: Int): Boolean {
+        if (isNetworkClientMode) return false
+
         val game = _gameState.value ?: return false
 
         if (playerIndex != game.currentPlayerIndex) {
@@ -110,6 +120,8 @@ class GameEngine {
     // ================= PLAY =================
 
     fun playCard(playerIndex: Int, card: Card): Boolean {
+        if (isNetworkClientMode) return false
+
         val game = _gameState.value ?: return false
 
         if (game.gamePhase != GamePhase.PLAYING) {
@@ -152,6 +164,8 @@ class GameEngine {
     // ================= AI =================
 
     private fun playAiTurnIfNeeded() {
+        if (isNetworkClientMode) return
+
         val game = _gameState.value ?: return
         val player = game.players[game.currentPlayerIndex]
 
@@ -214,16 +228,12 @@ class GameEngine {
         }
     }
 
-    // ================= NETWORK SUPPORT (CLIENT MODE CLEAN) =================
+    // ================= NETWORK SUPPORT (CLIENT CLEAN) =================
 
     fun onNetworkCommand(command: NetworkCommand) {
         val game = _gameState.value ?: return
 
         when (command) {
-
-            is NetworkCommand.GameStarted -> {
-                _gameState.value = game
-            }
 
             is NetworkCommand.TurnChanged -> {
                 val newIndex = game.players.indexOfFirst {
@@ -252,13 +262,12 @@ class GameEngine {
                 if (playerIndex == -1) return
 
                 val player = game.players[playerIndex]
-
                 val card = Card(
                     suit = Suit.valueOf(command.cardSuit),
                     rank = Rank.valueOf(command.cardRank)
                 )
 
-                val trick = game.getOrCreateCurrentTrick()
+                val trick = game.tricks.lastOrNull() ?: return
 
                 player.removeCard(card)
                 trick.play(playerIndex, card)
@@ -286,10 +295,6 @@ class GameEngine {
             is NetworkCommand.GameEnded -> {
                 game.endGame(command.winningTeamId)
                 _gameState.value = game
-            }
-
-            is NetworkCommand.SyncState -> {
-                // optional future full state sync
             }
 
             else -> Unit
