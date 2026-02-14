@@ -8,32 +8,27 @@ import com.tasalicool.game.model.Trick
  * TrickRules - قوانين الخدعة (Trick Engine)
  *
  * القاعدة الذهبية:
- * ♥ (القلب) هو الترامب دائماً
+ * ♥ القلب هو الترامب دائماً
  * أعلى قلب يربح أي خدعة
  */
 object TrickRules {
 
     private const val PLAYERS_PER_TRICK = 4
 
-    /**
-     * عدد اللاعبين في الخدعة
-     */
+    /** عدد اللاعبين في الخدعة */
     fun getPlayersPerTrick(): Int = PLAYERS_PER_TRICK
 
-    /**
-     * هل الخدعة اكتملت
-     */
+    /** هل الخدعة اكتملت */
     fun isTrickComplete(trick: Trick): Boolean {
         return trick.isComplete(PLAYERS_PER_TRICK)
     }
 
     /**
-     * حلّ الخدعة بالكامل
-     * - يحسب الرابح
-     * - يثبت winnerId داخل Trick
+     * حلّ الخدعة
+     * يحسب الرابح ويثبّته داخل Trick
      */
-    fun resolveTrick(trick: Trick, trumpSuit: Suit = Suit.HEARTS): Int {
-        val winner = calculateWinner(trick, trumpSuit)
+    fun resolveTrick(trick: Trick): Int {
+        val winner = calculateWinner(trick)
         trick.winnerId = winner
         return winner
     }
@@ -41,7 +36,7 @@ object TrickRules {
     /**
      * حساب رابح الخدعة
      */
-    fun calculateWinner(trick: Trick, trumpSuit: Suit = Suit.HEARTS): Int {
+    fun calculateWinner(trick: Trick): Int {
         if (trick.cards.isEmpty() || trick.playOrder.isEmpty()) return -1
 
         var winnerId = trick.playOrder.first()
@@ -50,11 +45,11 @@ object TrickRules {
         for (playerId in trick.playOrder.drop(1)) {
             val currentCard = trick.cards[playerId] ?: continue
 
-            if (canBeat(
+            if (
+                canBeat(
                     card = currentCard,
                     otherCard = winningCard,
-                    trickSuit = trick.trickSuit,
-                    trumpSuit = trumpSuit
+                    trickSuit = trick.trickSuit
                 )
             ) {
                 winningCard = currentCard
@@ -65,45 +60,32 @@ object TrickRules {
         return winnerId
     }
 
-    /**
-     * الترامب دائماً قلب
-     */
-    fun getTrumpSuit(): Suit = Suit.HEARTS
-
-    /**
-     * هل الورقة ترامب
-     */
-    fun isTrump(card: Card): Boolean = card.suit == getTrumpSuit()
-
-    /**
-     * هل card تغلب otherCard
-     */
+    /** هل card تغلب otherCard */
     fun canBeat(
         card: Card,
         otherCard: Card,
-        trickSuit: Suit?,
-        trumpSuit: Suit = Suit.HEARTS
+        trickSuit: Suit?
     ): Boolean {
 
-        // Trump يربح non-trump
-        if (card.suit == trumpSuit && otherCard.suit != trumpSuit) return true
+        // القلب (ترامب) يربح غير القلب
+        if (card.suit == Suit.HEARTS && otherCard.suit != Suit.HEARTS) return true
 
-        // أعلى trump يربح trump
-        if (card.suit == trumpSuit && otherCard.suit == trumpSuit) {
+        // أعلى قلب يربح قلب
+        if (card.suit == Suit.HEARTS && otherCard.suit == Suit.HEARTS) {
             return card.rank.value > otherCard.rank.value
         }
 
-        // نفس لون الخدعة يربح غيره
+        // نفس لون الخدعة يربح غيره (غير ترامب)
         if (
             trickSuit != null &&
             card.suit == trickSuit &&
             otherCard.suit != trickSuit &&
-            otherCard.suit != trumpSuit
+            otherCard.suit != Suit.HEARTS
         ) {
             return true
         }
 
-        // نفس اللون، الأعلى يربح
+        // نفس اللون → الأعلى يربح
         if (card.suit == otherCard.suit) {
             return card.rank.value > otherCard.rank.value
         }
