@@ -7,22 +7,25 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.tasalicool.game.ui.screens.GameScreen
+import androidx.navigation.compose.rememberNavController
+import com.tasalicool.game.ui.navigation.AppNavGraph
 import com.tasalicool.game.ui.theme.TasalicoolTheme
-import com.tasalicool.game.viewmodel.GameViewModel
 
 class MainActivity : ComponentActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         setContent {
             TasalicoolTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    val viewModel: GameViewModel = viewModel()
-                    GameScreen(viewModel = viewModel)
+
+                    val navController = rememberNavController()
+
+                    AppNavGraph(navController = navController)
                 }
             }
         }
