@@ -6,7 +6,10 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import com.tasalicool.game.network.ConnectionState
+import com.tasalicool.game.repository.GameRepository
 import com.tasalicool.game.ui.screens.*
 import com.tasalicool.game.viewmodel.GameViewModel
 
@@ -20,7 +23,8 @@ sealed class Screen(val route: String) {
 
 @Composable
 fun AppNavGraph(
-    navController: NavHostController = rememberNavController()
+    navController: NavHostController = rememberNavController(),
+    repository: GameRepository        // 👈 أضفنا هذا
 ) {
 
     NavHost(
@@ -46,7 +50,14 @@ fun AppNavGraph(
         // ================= GAME =================
         composable(Screen.Game.route) {
 
-            val gameViewModel: GameViewModel = viewModel()
+            // 👇 Factory مخصص لتمرير Repository
+            val factory = object : ViewModelProvider.Factory {
+                override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                    return GameViewModel(repository) as T
+                }
+            }
+
+            val gameViewModel: GameViewModel = viewModel(factory = factory)
 
             GameScreen(
                 viewModel = gameViewModel,
