@@ -5,14 +5,17 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tasalicool.game.network.ConnectionState
 import com.tasalicool.game.ui.screens.*
+import com.tasalicool.game.viewmodel.GameViewModel
 
 sealed class Screen(val route: String) {
     object Home : Screen("home")
     object Game : Screen("game")
     object Multiplayer : Screen("multiplayer")
     object Settings : Screen("settings")
+    object GameOver : Screen("game_over")
 }
 
 @Composable
@@ -42,9 +45,13 @@ fun AppNavGraph(
 
         // ================= GAME =================
         composable(Screen.Game.route) {
+
+            val gameViewModel: GameViewModel = viewModel()
+
             GameScreen(
-                onBackClick = {
-                    navController.popBackStack()
+                viewModel = gameViewModel,
+                onNavigateToGameOver = {
+                    navController.navigate(Screen.GameOver.route)
                 }
             )
         }
@@ -54,7 +61,6 @@ fun AppNavGraph(
 
             MultiplayerScreen(
                 onGameStart = {
-                    // لما يضغط Start Game
                     navController.navigate(Screen.Game.route)
                 },
                 onBackClick = {
@@ -62,10 +68,22 @@ fun AppNavGraph(
                 },
                 connectionState = ConnectionState.DISCONNECTED,
                 connectedPlayers = emptyList(),
-                onHostGame = { /* TODO networking */ },
-                onJoinGame = { _, _ -> /* TODO networking */ },
-                onPlayerReady = { /* TODO */ },
+                onHostGame = { },
+                onJoinGame = { _, _ -> },
+                onPlayerReady = { },
                 onDisconnect = { }
+            )
+        }
+
+        // ================= GAME OVER =================
+        composable(Screen.GameOver.route) {
+            GameOverScreen(
+                onBackToHome = {
+                    navController.popBackStack(
+                        Screen.Home.route,
+                        inclusive = false
+                    )
+                }
             )
         }
 
