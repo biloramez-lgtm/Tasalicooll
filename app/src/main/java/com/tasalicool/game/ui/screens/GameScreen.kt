@@ -7,27 +7,40 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.tasalicool.game.model.GamePhase
+import com.tasalicool.game.viewmodel.GameAction
+import com.tasalicool.game.viewmodel.GameEffect
 import com.tasalicool.game.viewmodel.GameViewModel
 
 @Composable
 fun GameScreen(
     viewModel: GameViewModel,
-    onGameOver: () -> Unit
+    onNavigateToGameOver: () -> Unit
 ) {
-    val game by viewModel.gameState.collectAsState()
-    val error by viewModel.errorState.collectAsState()
 
-    /* ======================= START GAME ONCE ======================= */
+    /* ================= STATE ================= */
+
+    val uiState by viewModel.uiState.collectAsState()
+
+    /* ================= EFFECT LISTENER ================= */
+
     LaunchedEffect(Unit) {
-        viewModel.startGame("Team 1", "Team 2")
-    }
+        viewModel.effect.collect { effect ->
+            when (effect) {
 
-    /* ======================= HANDLE GAME OVER ======================= */
-    LaunchedEffect(game?.isGameOver) {
-        if (game?.isGameOver == true) {
-            onGameOver()
+                is GameEffect.NavigateToGameOver -> {
+                    onNavigateToGameOver()
+                }
+
+                is GameEffect.ShowSnackbar -> {
+                    // لاحقاً فيك تربط SnackbarHost
+                }
+
+                else -> {}
+            }
         }
     }
+
+    /* ================= UI ================= */
 
     Scaffold(
         topBar = {
@@ -44,61 +57,60 @@ fun GameScreen(
             contentAlignment = Alignment.Center
         ) {
 
-            /* ======================= LOADING ======================= */
-            if (game == null) {
+            /* ---------- Loading ---------- */
+
+            if (uiState.isLoading) {
                 CircularProgressIndicator()
                 return@Box
             }
 
-            /* ======================= GAME SCREENS ======================= */
-            when {
-                game!!.isGameOver -> {
-                    GameOverScreen(
-                        game = game!!,
-                        onPlayAgain = {
-                            viewModel.restartGame()
-                        }
+            val game = uiState.game ?: return@Box
+
+            /* ---------- Phase Router ---------- */
+
+            when (game.gamePhase) {
+
+                /* ===== BIDDING ===== */
+
+                GamePhase.BIDDING -> {
+                    BiddingScreen(
+                        viewModel = viewModel,
+                        game = game
                     )
                 }
 
-                else -> {
-                    when (game!!.gamePhase) {
+                /* ===== PLAYING ===== */
 
-                        GamePhase.BIDDING -> {
-                            BiddingScreen(
-                                viewModel = viewModel,
-                                game = game!!
+                GamePhase.PLAYING -> {
+                    GamePlayScreen(
+                        game = game,
+                        currentPlayer = game.players[game.currentPlayerIndex],
+                        validCards = game.players[game.currentPlayerIndex].hand,
+                        onCardPlay = { card ->
+                            viewModel.onAction(
+                                GameAction.PlayCard(
+                                    playerIndex = game.currentPlayerIndex,
+                                    card = card
+                                )
                             )
-                        }
-
-                        GamePhase.PLAYING -> {
-                            GamePlayScreen(
-                                viewModel = viewModel,
-                                game = game!!
-                            )
-                        }
-
-                        else -> {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                Text("Preparing game...")
-                                CircularProgressIndicator()
-                            }
-                        }
-                    }
+                        },
+                        onConcede = {
+                            viewModel.onAction(GameAction.RestartGame)
+                        },
+                        isCurrentTurn = uiState.isMyTurn
+                    )
                 }
-            }
 
-            /* ======================= ERROR ======================= */
-            error?.let {
-                Snackbar(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(16.dp)
-                ) {
-                    Text(it)
+                /* ===== OTHER STATES ===== */
+
+                else -> {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text("Preparing game...")
+                        CircularProgressIndicator()
+                    }
                 }
             }
         }
