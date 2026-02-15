@@ -10,6 +10,8 @@ import com.tasalicool.game.network.NetworkCommand
 import com.tasalicool.game.rules.BiddingRules
 import com.tasalicool.game.rules.CardRules
 import com.tasalicool.game.rules.ScoringRules
+import com.tasalicool.game.rules.PlayRules
+import com.tasalicool.game.rules.TrickRules
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
