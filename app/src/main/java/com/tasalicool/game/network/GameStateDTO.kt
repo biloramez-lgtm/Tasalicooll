@@ -2,6 +2,7 @@ package com.tasalicool.game.network
 
 import kotlinx.serialization.Serializable
 import java.io.Serializable as JavaSerializable
+import com.tasalicool.game.model.Game
 
 /**
  * GameStateDTO
@@ -16,8 +17,8 @@ data class GameStateDTO(
     val gameVersion: Int = 1,
 
     // ===== ROUND STATE =====
-    val currentRound: Int,
-    val currentTrick: Int,
+    val round: Int,
+    val currentTrickNumber: Int,
     val gamePhase: String,
     val biddingPhase: String,
 
@@ -54,30 +55,15 @@ data class GameStateDTO(
 
 ) : JavaSerializable {
 
-    // ===== BASIC VALIDATION ONLY =====
-
-    fun isValid(): Boolean {
-        return gameId.isNotEmpty() &&
-                currentRound >= 0 &&
-                currentTrick in 0..13 &&
-                dealerIndex in 0..3 &&
-                currentPlayerIndex in 0..3 &&
-                players.size == 4 &&
-                team1Score >= 0 &&
-                team2Score >= 0
-    }
-
-    override fun toString(): String {
-        return "GameStateDTO(gameId=$gameId, round=$currentRound, trick=$currentTrick)"
-    }
-
     companion object {
 
-        fun fromGame(game: com.tasalicool.game.model.Game): GameStateDTO {
+        fun fromGame(game: Game): GameStateDTO {
+            val currentTrick = game.tricks.lastOrNull() ?: game.getOrCreateCurrentTrick()
+
             return GameStateDTO(
                 gameId = game.id,
-                currentRound = game.currentRound,
-                currentTrick = game.currentTrick,
+                round = game.round,
+                currentTrickNumber = game.currentTrickNumber,
                 gamePhase = game.gamePhase.name,
                 biddingPhase = game.biddingPhase.name,
                 dealerIndex = game.dealerIndex,
@@ -86,17 +72,16 @@ data class GameStateDTO(
                     PlayerDTO.fromPlayer(
                         player = player,
                         position = index,
-                        teamId = if (index in 0..1) 1 else 2,
+                        teamId = if (index in 0..1) game.team1.id else game.team2.id,
                         isCurrentTurn = game.currentPlayerIndex == index,
                         isDealer = game.dealerIndex == index
                     )
                 },
                 team1Score = game.team1.score,
                 team2Score = game.team2.score,
-                team1RoundScore = game.team1.player1.score + game.team1.player2.score,
-                team2RoundScore = game.team2.player1.score + game.team2.player2.score,
-                currentTrickCards = game.getCurrentTrick()?.cards
-                    ?.mapValues { CardDTO.fromCard(it.value) } ?: emptyMap(),
+                team1RoundScore = game.team1.players.sumOf { it.score },
+                team2RoundScore = game.team2.players.sumOf { it.score },
+                currentTrickCards = currentTrick.cards.mapValues { CardDTO.fromCard(it.value) },
                 completedTricks = game.tricks.size,
                 tricks = game.tricks.map { TrickDTO.fromTrick(it) },
                 bids = game.players.associate { it.id to it.bid },
@@ -109,8 +94,8 @@ data class GameStateDTO(
         fun empty(): GameStateDTO {
             return GameStateDTO(
                 gameId = "",
-                currentRound = 0,
-                currentTrick = 0,
+                round = 0,
+                currentTrickNumber = 0,
                 gamePhase = "DEALING",
                 biddingPhase = "WAITING",
                 dealerIndex = 0,
