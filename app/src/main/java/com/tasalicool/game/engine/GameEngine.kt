@@ -1,18 +1,13 @@
 package com.tasalicool.game.engine
 
-// ==================== IMPORTS ====================
 import com.tasalicool.game.model.*
 import com.tasalicool.game.rules.*
 import com.tasalicool.game.engine.ai.AiEngine
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
-/**
- * GameEngine - المحرك الرئيسي للعبة
- */
 class GameEngine {
 
-    // ================= STATE =================
     private val aiEngine = AiEngine()
     private val _gameState = MutableStateFlow<Game?>(null)
     val gameState: StateFlow<Game?> = _gameState
@@ -20,22 +15,15 @@ class GameEngine {
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
 
-    // ================= NETWORK MODE =================
     private var isNetworkClientMode = false
-    @Suppress("unused")
-    fun enableNetworkClientMode() {
-        isNetworkClientMode = true
-    }
+    fun enableNetworkClientMode() { isNetworkClientMode = true }
 
-    // ================= INIT =================
     fun initializeGame(team1: Team, team2: Team, dealerIndex: Int = 0) {
         val players = team1.players + team2.players
         val game = Game(team1 = team1, team2 = team2, players = players)
-
         game.startDealing()
         setDealer(game, dealerIndex)
         dealCards(game)
-
         _gameState.value = game
         playAiTurnIfNeeded()
     }
@@ -52,7 +40,6 @@ class GameEngine {
         )
     }
 
-    // ================= DEAL =================
     private fun dealCards(game: Game) {
         val deck = Card.createGameDeck().shuffled()
         game.players.forEach { it.hand.clear() }
@@ -63,24 +50,19 @@ class GameEngine {
         game.startBidding()
     }
 
-    // ================= BIDDING =================
     fun placeBid(playerIndex: Int, bid: Int): Boolean {
         if (isNetworkClientMode) return false
         val game = _gameState.value ?: return false
-
         if (playerIndex != game.currentPlayerIndex) {
             emitError("مش دورك بالبيد")
             return false
         }
-
         val player = game.players[playerIndex]
         val minBid = BiddingRules.getMinimumBid(game.getTeamByPlayer(player.id)?.score ?: 0)
-
         if (!BiddingRules.isValidBid(bid, player.hand.size, minBid)) {
             emitError("Bid غير صالح")
             return false
         }
-
         player.bid = bid
         game.advanceBidding()
         _gameState.value = game
@@ -88,39 +70,32 @@ class GameEngine {
         return true
     }
 
-    // ================= PLAY =================
     fun playCard(playerIndex: Int, card: Card): Boolean {
         if (isNetworkClientMode) return false
         val game = _gameState.value ?: return false
-
         if (game.gamePhase != GamePhase.PLAYING) {
             emitError("اللعب غير مسموح الآن")
             return false
         }
-
         if (playerIndex != game.currentPlayerIndex) {
             emitError("مش دورك")
             return false
         }
 
         val player = game.players[playerIndex]
-        val trick = game.getOrCreateCurrentTrick()
-
+        val trick = game.getOrCreateCurrentTrick() ?: return false
         if (!PlayRules.canPlayCard(card, player, trick)) {
             emitError("كرت غير مسموح")
             return false
         }
 
         player.removeCard(card)
-        trick.playCard(player, card) // تم تعديل play() -> playCard() لتتوافق مع Trick
+        trick.playCard(player, card)
 
         if (trick.isComplete(game.players.size)) {
-            val winner = TrickRules.calculateWinner(trick)
-            game.endTrick(winner)
-
-            if (game.tricks.size == 13) {
-                endRound(game)
-            }
+            val winnerId = TrickRules.calculateWinner(trick)
+            game.endTrick(winnerId)
+            if (game.tricks.size == 13) endRound(game)
         } else {
             game.advanceTurn()
         }
@@ -130,12 +105,10 @@ class GameEngine {
         return true
     }
 
-    // ================= AI =================
     private fun playAiTurnIfNeeded() {
         if (isNetworkClientMode) return
         val game = _gameState.value ?: return
         val player = game.players[game.currentPlayerIndex]
-
         if (!player.isAI || game.isGameOver) return
 
         when (game.gamePhase) {
@@ -157,25 +130,24 @@ class GameEngine {
     }
 
     private fun handleAiPlay(game: Game, player: Player) {
-        val trick = game.getOrCreateCurrentTrick()
+        val trick = game.getOrCreateCurrentTrick() ?: return
         val validCards = PlayRules.getValidCards(player, trick)
         val card = aiEngine.decideCard(
             hand = player.hand,
             validCards = validCards,
             trickSuit = trick.trickSuit,
             playedCards = trick.cards,
-            trickNumber = game.currentTrick,
+            trickNumber = game.tricks.size,
             teamScore = game.getTeamByPlayer(player.id)?.score ?: 0,
             opponentScore = game.getOpponentTeam(player.id)?.score ?: 0,
-            tricksBidded = game.getTeamByPlayer(player.id)?.totalBid ?: 0, // تعديل getTotalBid -> totalBid
-            tricksWon = game.getTeamByPlayer(player.id)?.totalTricksWon ?: 0, // تعديل getTotalTricksWon -> totalTricksWon
-            currentTrickWinnerId = trick.currentWinnerId,
+            tricksBidded = game.getTeamByPlayer(player.id)?.totalBid ?: 0,
+            tricksWon = game.getTeamByPlayer(player.id)?.totalTricksWon ?: 0,
+            currentTrickWinnerId = trick.winnerId ?: -1,
             playerId = player.id
         )
         playCard(game.currentPlayerIndex, card)
     }
 
-    // ================= ROUND END =================
     private fun endRound(game: Game) {
         when {
             game.team1.isWinner -> game.endGame(game.team1.id)
@@ -188,16 +160,10 @@ class GameEngine {
         }
     }
 
-    // ================= HELPERS =================
     private fun setDealer(game: Game, dealerIndex: Int) {
         repeat(dealerIndex) { game.startNextRound() }
     }
 
-    private fun emitError(message: String) {
-        _error.value = message
-    }
-
-    fun clearError() {
-        _error.value = null
-    }
+    private fun emitError(message: String) { _error.value = message }
+    fun clearError() { _error.value = null }
 }
