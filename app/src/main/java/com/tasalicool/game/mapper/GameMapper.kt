@@ -13,13 +13,13 @@ fun Game.toEntity(): GameEntity {
         team1Score = team1.score,
         team2Score = team2.score,
 
-        winnerTeamId = winningTeamId,
+        winnerTeamId = winningTeamId ?: 0, // إذا لم يتم تحديد الفائز بعد، نضع 0
 
-        totalRounds = roundsPlayed,
+        totalRounds = round ?: 0, // roundsPlayed غير موجود، استخدمنا round
 
-        gameMode = gameMode.name,
+        gameMode = gameMode?.name ?: "DEFAULT", // إذا gameMode غير موجود، نعطي قيمة افتراضية
 
-        duration = duration,
+        duration = duration ?: 0L, // إذا duration غير موجود، نعطي 0L
 
         playerCount = players.size
     )
