@@ -56,9 +56,7 @@ data class Card(
 
     fun toShortString(): String = "${rank.displayName}${suit.getShortName()}"
 
-    fun getImageResId(): Int {
-        return 0
-    }
+    fun getImageResId(): Int = 0
 
     fun isTrump(): Boolean = suit == Suit.HEARTS
 
@@ -71,79 +69,44 @@ data class Card(
     fun isNumberCard(): Boolean = rank.isNumberCard()
 
     fun canBeat(otherCard: Card, trickSuit: Suit?, trumpSuit: Suit = Suit.HEARTS): Boolean {
-        // Trump always beats non-trump
-        if (this.suit == trumpSuit && otherCard.suit != trumpSuit) {
-            return true
-        }
-
-        // Higher trump beats lower trump
-        if (this.suit == trumpSuit && otherCard.suit == trumpSuit) {
-            return this.rank.value > otherCard.rank.value
-        }
-
-        // Matching trick suit beats non-matching
-        if (this.suit == trickSuit && otherCard.suit != trickSuit && otherCard.suit != trumpSuit) {
-            return true
-        }
-
-        // Higher card in same suit beats lower
-        if (this.suit == otherCard.suit) {
-            return this.rank.value > otherCard.rank.value
-        }
-
-        // Non-trump, non-trick-suit doesn't beat anything
+        if (this.suit == trumpSuit && otherCard.suit != trumpSuit) return true
+        if (this.suit == trumpSuit && otherCard.suit == trumpSuit) return this.rank.value > otherCard.rank.value
+        if (this.suit == trickSuit && otherCard.suit != trickSuit && otherCard.suit != trumpSuit) return true
+        if (this.suit == otherCard.suit) return this.rank.value > otherCard.rank.value
         return false
     }
 
-    fun isBetter(otherCard: Card, trickSuit: Suit?, trumpSuit: Suit = Suit.HEARTS): Boolean {
-        return canBeat(otherCard, trickSuit, trumpSuit)
-    }
+    fun isBetter(otherCard: Card, trickSuit: Suit?, trumpSuit: Suit = Suit.HEARTS): Boolean =
+        canBeat(otherCard, trickSuit, trumpSuit)
 
-    fun compareTo(otherCard: Card, trickSuit: Suit?, trumpSuit: Suit = Suit.HEARTS): Int {
-        return when {
+    fun compareTo(otherCard: Card, trickSuit: Suit?, trumpSuit: Suit = Suit.HEARTS): Int =
+        when {
             this.canBeat(otherCard, trickSuit, trumpSuit) -> 1
             otherCard.canBeat(this, trickSuit, trumpSuit) -> -1
             else -> 0
         }
-    }
 
     fun getStrength(): Int {
-        var strength = 0
-
-        // Base rank value (2-14)
-        strength += rank.value * 10
-
-        // Trump bonus
-        if (isTrump()) {
-            strength += 1000
-        }
-
-        // Face card bonus
-        if (isFaceCard()) {
-            strength += 50
-        }
-
-        // High card bonus
-        if (isHighCard()) {
-            strength += 30
-        }
-
+        var strength = rank.value * 10
+        if (isTrump()) strength += 1000
+        if (isFaceCard()) strength += 50
+        if (isHighCard()) strength += 30
         return strength
     }
 
-    fun equals(other: Card): Boolean {
-        return this.suit == other.suit && this.rank == other.rank
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is Card) return false
+        return suit == other.suit && rank == other.rank
     }
 
-    fun hashCode(): Int {
+    override fun hashCode(): Int {
         var result = suit.hashCode()
         result = 31 * result + rank.hashCode()
         return result
     }
 
-    fun copy(): Card {
-        return Card(suit = this.suit, rank = this.rank)
-    }
+    fun copy(): Card = Card(suit, rank)
 
     fun getColor(): String = suit.getColor()
 
@@ -153,19 +116,11 @@ data class Card(
 
     fun getPoints(): Int = rank.getPoints()
 
-    fun matches(suit: Suit?): Boolean {
-        return suit == null || this.suit == suit
-    }
+    fun matches(suit: Suit?): Boolean = suit == null || this.suit == suit
 
-    fun matchesSuit(otherCard: Card): Boolean {
-        return this.suit == otherCard.suit
-    }
+    fun matchesSuit(otherCard: Card): Boolean = this.suit == otherCard.suit
 
-    fun matchesRank(otherCard: Card): Boolean {
-        return this.rank == otherCard.rank
-    }
+    fun matchesRank(otherCard: Card): Boolean = this.rank == otherCard.rank
 
-    fun matchesBoth(otherCard: Card): Boolean {
-        return matchesSuit(otherCard) && matchesRank(otherCard)
-    }
+    fun matchesBoth(otherCard: Card): Boolean = matchesSuit(otherCard) && matchesRank(otherCard)
 }
