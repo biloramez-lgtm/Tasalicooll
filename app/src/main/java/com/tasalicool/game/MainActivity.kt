@@ -3,52 +3,25 @@ package com.tasalicool.game
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.ui.Modifier
-import androidx.navigation.compose.rememberNavController
-import com.tasalicool.game.data.TasalicoolDatabase
-import com.tasalicool.game.repository.GameRepository
-import com.tasalicool.game.ui.navigation.AppNavGraph
-import com.tasalicool.game.ui.theme.TasalicoolTheme
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import com.tasalicool.game.engine.GameEngine
+import com.tasalicool.game.ui.GameScreen
+import com.tasalicool.game.ui.theme.TasalicoollTheme
 
 class MainActivity : ComponentActivity() {
 
-    private lateinit var database: TasalicoolDatabase
-    private lateinit var repository: GameRepository
+    private val engine = GameEngine()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        // ✅ استخدام Singleton الصحيح من Room
-        database = TasalicoolDatabase.getDatabase(applicationContext)
-
-        // ✅ ربط Repository مع DAO
-        repository = GameRepository(
-            gameDao = database.gameDao()
-        )
-
         setContent {
-            TasalicoolTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-
-                    val navController = rememberNavController()
-
-                    AppNavGraph(
-                        navController = navController,
-                        repository = repository
-                    )
+            TasalicoollTheme {
+                Surface(color = MaterialTheme.colorScheme.background) {
+                    GameScreen(engine = engine)
                 }
             }
         }
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        repository.cleanup()
+        engine.initializeDefaultGame("TeamA", "TeamB")
     }
 }
