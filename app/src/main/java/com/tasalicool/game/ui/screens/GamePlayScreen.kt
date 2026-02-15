@@ -209,7 +209,7 @@ private fun GamePlayTopBar(
                                 fontWeight = FontWeight.Bold
                             )
                         }
-                    )
+                    }
                     
                     // Tricks Badge
                     Box(
