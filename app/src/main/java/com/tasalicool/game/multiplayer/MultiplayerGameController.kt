@@ -15,30 +15,18 @@ class MultiplayerGameController(
     private val multiplayerManager: MultiplayerManager
 ) {
 
-    // 🔥 نشتغل على Main حتى ما يصير مشاكل UI
-    private val scope =
-        CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
-
-    // 🔒 حماية من race condition
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val mutex = Mutex()
 
-    init {
-        observeCommands()
-    }
+    init { observeCommands() }
 
     private fun observeCommands() {
         scope.launch {
             multiplayerManager.commands.collect { cmd ->
                 mutex.withLock {
-
                     when (multiplayerManager.connectionState.value) {
-
-                        ConnectionState.HOSTING ->
-                            handleAsHost(cmd)
-
-                        ConnectionState.CONNECTED ->
-                            handleAsClient(cmd)
-
+                        ConnectionState.HOSTING -> handleAsHost(cmd)
+                        ConnectionState.CONNECTED -> handleAsClient(cmd)
                         else -> Unit
                     }
                 }
@@ -46,12 +34,8 @@ class MultiplayerGameController(
         }
     }
 
-    // ================= HOST =================
-
     private fun handleAsHost(cmd: NetworkCommand) {
-
         when (cmd) {
-
             is NetworkCommand.BidPlaced -> {
                 val playerIndex = findPlayerIndex(cmd.playerId)
                 if (playerIndex != -1) {
@@ -59,62 +43,37 @@ class MultiplayerGameController(
                     sendSync()
                 }
             }
-
             is NetworkCommand.CardPlayed -> {
                 val playerIndex = findPlayerIndex(cmd.playerId)
                 if (playerIndex != -1) {
-
-                    // البحث في اليد عن بطاقة تطابق الـ rank و suit
-                    val card = engine.gameState.value
-                        ?.players?.get(playerIndex)
-                        ?.hand?.firstOrNull { c ->
-                            c.rank.displayName == cmd.cardRank &&
-                            c.suit.getSymbol() == cmd.cardSuit
-                        }
-
+                    val card = engine.gameState.value?.players?.get(playerIndex)?.hand?.firstOrNull {
+                        it.rank.name == cmd.cardRank && it.suit.name == cmd.cardSuit
+                    }
                     if (card != null) {
-                        engine.playCard(playerIndex, card) // النوع صحيح الآن: Card
+                        engine.playCard(playerIndex, card)
                         sendSync()
                     }
                 }
             }
-
             else -> Unit
         }
     }
 
     private fun sendSync() {
         val state = engine.gameState.value ?: return
-
         val serialized = Json.encodeToString(state)
-
-        multiplayerManager.broadcast(
-            NetworkCommand.SyncState(
-                gameId = state.id,
-                serializedGameState = serialized
-            )
-        )
+        multiplayerManager.broadcast(NetworkCommand.SyncState(state.id, serialized))
     }
 
-    // ================= CLIENT =================
-
     private fun handleAsClient(cmd: NetworkCommand) {
-
         if (cmd is NetworkCommand.SyncState) {
             engine.onNetworkCommand(cmd)
         }
     }
 
-    // ================= UTIL =================
-
     private fun findPlayerIndex(playerId: String): Int {
-        return engine.gameState.value
-            ?.players
-            ?.indexOfFirst { it.id.toString() == playerId }
-            ?: -1
+        return engine.gameState.value?.players?.indexOfFirst { it.id.toString() == playerId } ?: -1
     }
 
-    fun clear() {
-        scope.cancel()
-    }
+    fun clear() { scope.cancel() }
 }
