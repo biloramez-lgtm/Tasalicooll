@@ -1,51 +1,19 @@
 package com.tasalicool.game.engine
 
-// ==================== MODEL IMPORTS ====================
-import com.tasalicool.game.model.Game
-import com.tasalicool.game.model.Team
-import com.tasalicool.game.model.Player
-import com.tasalicool.game.model.Card
-import com.tasalicool.game.model.GamePhase
-import com.tasalicool.game.model.Trick
+// ==================== IMPORTS ====================
 import com.tasalicool.game.model.*
-
-// ==================== RULES IMPORTS ====================
-import com.tasalicool.game.rules.BiddingRules
-import com.tasalicool.game.rules.PlayRules
-import com.tasalicool.game.rules.TrickRules
-import com.tasalicool.game.rules.GameRules
-import com.tasalicool.game.rules.RoundRules
-import com.tasalicool.game.rules.ScoreCalculator
-
-// ==================== ENGINE IMPORTS ====================
+import com.tasalicool.game.rules.*
 import com.tasalicool.game.engine.ai.AiEngine
-
-// ==================== NETWORK IMPORTS ====================
-import com.tasalicool.game.network.NetworkCommand
-
-// ==================== COROUTINES IMPORTS ====================
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * GameEngine - محرك اللعبة الرئيسي
- * 
- * يدير:
- * - تهيئة اللعبة
- * - توزيع الأوراق
- * - إدارة البدية واللعب
- * - الـ AI
- * - نهاية الجولات والعبة
+ * GameEngine - المحرك الرئيسي للعبة
  */
 class GameEngine {
 
-    // ================= RULES =================
-
-    private val aiEngine = AiEngine()
-
     // ================= STATE =================
-
+    private val aiEngine = AiEngine()
     private val _gameState = MutableStateFlow<Game?>(null)
     val gameState: StateFlow<Game?> = _gameState
 
@@ -53,27 +21,16 @@ class GameEngine {
     val error: StateFlow<String?> = _error
 
     // ================= NETWORK MODE =================
-
     private var isNetworkClientMode = false
-
+    @Suppress("unused")
     fun enableNetworkClientMode() {
         isNetworkClientMode = true
     }
 
     // ================= INIT =================
-
-    fun initializeGame(
-        team1: Team,
-        team2: Team,
-        dealerIndex: Int = 0
-    ) {
+    fun initializeGame(team1: Team, team2: Team, dealerIndex: Int = 0) {
         val players = team1.players + team2.players
-
-        val game = Game(
-            team1 = team1,
-            team2 = team2,
-            players = players
-        )
+        val game = Game(team1, team2, players)
 
         game.startDealing()
         setDealer(game, dealerIndex)
@@ -90,31 +47,25 @@ class GameEngine {
         val p4 = Player(3, "$team2Name-2", isAI = true)
 
         initializeGame(
-            Team(1, team1Name, players = listOf(p1, p3)),
-            Team(2, team2Name, players = listOf(p2, p4))
+            Team(1, team1Name, listOf(p1, p3)),
+            Team(2, team2Name, listOf(p2, p4))
         )
     }
 
     // ================= DEAL =================
-
     private fun dealCards(game: Game) {
         val deck = Card.createGameDeck().shuffled()
-
         game.players.forEach { it.hand.clear() }
-
         deck.chunked(13).forEachIndexed { index, cards ->
             game.players[index].hand.addAll(cards)
             game.players[index].sortHand()
         }
-
         game.startBidding()
     }
 
     // ================= BIDDING =================
-
     fun placeBid(playerIndex: Int, bid: Int): Boolean {
         if (isNetworkClientMode) return false
-
         val game = _gameState.value ?: return false
 
         if (playerIndex != game.currentPlayerIndex) {
@@ -123,10 +74,7 @@ class GameEngine {
         }
 
         val player = game.players[playerIndex]
-
-        val minBid = BiddingRules.getMinimumBid(
-            game.getTeamByPlayer(player.id)!!.score
-        )
+        val minBid = BiddingRules.getMinimumBid(game.getTeamByPlayer(player.id)?.score ?: 0)
 
         if (!BiddingRules.isValidBid(bid, player.hand.size, minBid)) {
             emitError("Bid غير صالح")
@@ -135,17 +83,14 @@ class GameEngine {
 
         player.bid = bid
         game.advanceBidding()
-
         _gameState.value = game
         playAiTurnIfNeeded()
         return true
     }
 
     // ================= PLAY =================
-
     fun playCard(playerIndex: Int, card: Card): Boolean {
         if (isNetworkClientMode) return false
-
         val game = _gameState.value ?: return false
 
         if (game.gamePhase != GamePhase.PLAYING) {
@@ -186,10 +131,8 @@ class GameEngine {
     }
 
     // ================= AI =================
-
     private fun playAiTurnIfNeeded() {
         if (isNetworkClientMode) return
-
         val game = _gameState.value ?: return
         val player = game.players[game.currentPlayerIndex]
 
@@ -203,47 +146,38 @@ class GameEngine {
     }
 
     private fun handleAiBid(game: Game, player: Player) {
-        val minBid = BiddingRules.getMinimumBid(
-            game.getTeamByPlayer(player.id)!!.score
-        )
-
+        val minBid = BiddingRules.getMinimumBid(game.getTeamByPlayer(player.id)?.score ?: 0)
         val bid = aiEngine.decideBid(
             hand = player.hand,
-            teamScore = game.getTeamByPlayer(player.id)!!.score,
-            opponentScore = game.getOpponentTeam(player.id)!!.score,
+            teamScore = game.getTeamByPlayer(player.id)?.score ?: 0,
+            opponentScore = game.getOpponentTeam(player.id)?.score ?: 0,
             minimumBid = minBid
         )
-
         placeBid(game.currentPlayerIndex, bid)
     }
 
     private fun handleAiPlay(game: Game, player: Player) {
         val trick = game.getOrCreateCurrentTrick()
         val validCards = PlayRules.getValidCards(player, trick)
-
         val card = aiEngine.decideCard(
             hand = player.hand,
             validCards = validCards,
             trickSuit = trick.trickSuit,
             playedCards = trick.cards,
             trickNumber = game.currentTrick,
-            teamScore = game.getTeamByPlayer(player.id)!!.score,
-            opponentScore = game.getOpponentTeam(player.id)!!.score,
-            tricksBidded = game.getTeamByPlayer(player.id)!!.getTotalBid(),
-            tricksWon = game.getTeamByPlayer(player.id)!!.getTotalTricksWon(),
+            teamScore = game.getTeamByPlayer(player.id)?.score ?: 0,
+            opponentScore = game.getOpponentTeam(player.id)?.score ?: 0,
+            tricksBidded = game.getTeamByPlayer(player.id)?.getTotalBid() ?: 0,
+            tricksWon = game.getTeamByPlayer(player.id)?.getTotalTricksWon() ?: 0,
             currentTrickWinnerId = trick.currentWinnerId,
             playerId = player.id
         )
-
         playCard(game.currentPlayerIndex, card)
     }
 
     // ================= ROUND END =================
-
     private fun endRound(game: Game) {
-        // TODO: Implement scoring logic
-        // يمكن استخدام ScoreCalculator.getPointsForBid() لحساب النقاط
-
+        // مؤقت: سيتم حساب النقاط لاحقاً
         when {
             game.team1.isWinner -> game.endGame(game.team1.id)
             game.team2.isWinner -> game.endGame(game.team2.id)
@@ -256,7 +190,6 @@ class GameEngine {
     }
 
     // ================= HELPERS =================
-
     private fun setDealer(game: Game, dealerIndex: Int) {
         repeat(dealerIndex) { game.startNextRound() }
     }
