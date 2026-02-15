@@ -28,6 +28,14 @@ class GameEngine {
         setDealer(game, dealerIndex)
         dealCards(game)
         _gameState.value = game
+
+        // 🔥 ربط كل لاعب بالـ Engine
+        game.players.forEachIndexed { index, player ->
+            player.onPlayCard = { card ->
+                this.playCard(index, card)
+            }
+        }
+
         playAiTurnIfNeeded()
     }
 
