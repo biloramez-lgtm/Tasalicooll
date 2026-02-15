@@ -1,4 +1,4 @@
-package com.tasalicool.game.network.dto
+package com.tasalicool.game.network
 
 import kotlinx.serialization.Serializable
 import java.io.Serializable as JavaSerializable
