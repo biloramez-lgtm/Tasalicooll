@@ -1,5 +1,15 @@
 package com.tasalicool.game.ui.screens
 
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import com.tasalicool.game.ui.theme.BackgroundGreen
+import com.tasalicool.game.ui.theme.TextGray
+import com.tasalicool.game.ui.theme.TextWhite
+import com.tasalicool.game.ui.theme.PrimaryRed
+import com.tasalicool.game.ui.theme.SecondaryGold
+import com.tasalicool.game.ui.theme.BackgroundBlack
+import com.tasalicool.game.ui.theme.BorderGray
+import com.tasalicool.game.ui.theme.ErrorRed
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
