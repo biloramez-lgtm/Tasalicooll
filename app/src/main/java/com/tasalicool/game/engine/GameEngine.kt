@@ -30,7 +30,7 @@ class GameEngine {
     // ================= INIT =================
     fun initializeGame(team1: Team, team2: Team, dealerIndex: Int = 0) {
         val players = team1.players + team2.players
-        val game = Game(team1, team2, players)
+        val game = Game(team1 = team1, team2 = team2, players = players)
 
         game.startDealing()
         setDealer(game, dealerIndex)
@@ -112,7 +112,7 @@ class GameEngine {
         }
 
         player.removeCard(card)
-        trick.play(playerIndex, card)
+        trick.playCard(player, card) // تم تعديل play() -> playCard() لتتوافق مع Trick
 
         if (trick.isComplete(game.players.size)) {
             val winner = TrickRules.calculateWinner(trick)
@@ -167,8 +167,8 @@ class GameEngine {
             trickNumber = game.currentTrick,
             teamScore = game.getTeamByPlayer(player.id)?.score ?: 0,
             opponentScore = game.getOpponentTeam(player.id)?.score ?: 0,
-            tricksBidded = game.getTeamByPlayer(player.id)?.getTotalBid() ?: 0,
-            tricksWon = game.getTeamByPlayer(player.id)?.getTotalTricksWon() ?: 0,
+            tricksBidded = game.getTeamByPlayer(player.id)?.totalBid ?: 0, // تعديل getTotalBid -> totalBid
+            tricksWon = game.getTeamByPlayer(player.id)?.totalTricksWon ?: 0, // تعديل getTotalTricksWon -> totalTricksWon
             currentTrickWinnerId = trick.currentWinnerId,
             playerId = player.id
         )
@@ -177,7 +177,6 @@ class GameEngine {
 
     // ================= ROUND END =================
     private fun endRound(game: Game) {
-        // مؤقت: سيتم حساب النقاط لاحقاً
         when {
             game.team1.isWinner -> game.endGame(game.team1.id)
             game.team2.isWinner -> game.endGame(game.team2.id)
