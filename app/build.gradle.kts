@@ -1,7 +1,7 @@
 plugins {
     id("com.android.application")
     kotlin("android")
-    kotlin("kapt")
+    id("com.google.devtools.ksp")
     id("kotlin-parcelize")
 }
 
@@ -60,12 +60,8 @@ android {
 
 dependencies {
 
-    /* ================= CORE ================= */
-
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.activity:activity-compose:1.8.2")
-
-    /* ================= COMPOSE ================= */
 
     val composeBom = platform("androidx.compose:compose-bom:2024.04.01")
     implementation(composeBom)
@@ -80,48 +76,26 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 
-    /* ================= LIFECYCLE ================= */
-
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.7.0")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
 
-    /* ================= NAVIGATION ================= */
-
     implementation("androidx.navigation:navigation-compose:2.7.7")
 
-    /* ================= COROUTINES ================= */
-
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
-
-    /* ================= NETWORK ================= */
 
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.google.code.gson:gson:2.10.1")
 
-    /* ================= ROOM ================= */
-
+    /* ROOM with KSP */
     implementation("androidx.room:room-runtime:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1")
-    kapt("androidx.room:room-compiler:2.6.1")
-
-    /* ================= DATASTORE ================= */
+    ksp("androidx.room:room-compiler:2.6.1")
 
     implementation("androidx.datastore:datastore-preferences:1.1.0")
-
-    /* ================= WORK MANAGER ================= */
-
     implementation("androidx.work:work-runtime-ktx:2.9.0")
-
-    /* ================= IMAGES ================= */
-
     implementation("io.coil-kt:coil-compose:2.5.0")
-
-    /* ================= LOGGING ================= */
-
     implementation("com.jakewharton.timber:timber:5.0.1")
-
-    /* ================= TEST ================= */
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
