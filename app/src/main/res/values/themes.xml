@@ -1,7 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
 
-    <style name="Theme.TasalicoolGame"
-        parent="android:Theme.Material.Light.NoActionBar" />
+    <!-- الثيم الأساسي للتطبيق -->
+    <style name="Theme.Tasalicooll" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- الألوان الأساسية -->
+        <item name="colorPrimary">@color/primary</item>
+        <item name="colorOnPrimary">@color/onPrimary</item>
+        <item name="colorPrimaryContainer">@color/primaryContainer</item>
+        <item name="colorOnPrimaryContainer">@color/onPrimaryContainer</item>
+
+        <!-- ألوان ثانوية -->
+        <item name="colorSecondary">@color/secondary</item>
+        <item name="colorOnSecondary">@color/onSecondary</item>
+        <item name="colorSecondaryContainer">@color/secondaryContainer</item>
+        <item name="colorOnSecondaryContainer">@color/onSecondaryContainer</item>
+
+        <!-- خلفيات -->
+        <item name="android:windowBackground">@color/background</item>
+    </style>
 
 </resources>
