@@ -1,5 +1,11 @@
 package com.tasalicool.game.engine
 
+import com.tasalicool.game.rules.CardRules
+import com.tasalicool.game.rules.ScoringRules
+import com.tasalicool.game.model.Game
+import com.tasalicool.game.model.Team
+import com.tasalicool.game.model.Player
+import com.tasalicool.game.model.Card
 import com.tasalicool.game.engine.ai.AiEngine
 import com.tasalicool.game.model.*
 import com.tasalicool.game.network.NetworkCommand
