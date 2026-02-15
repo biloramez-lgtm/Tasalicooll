@@ -1,5 +1,9 @@
 package com.tasalicool.game.ui.screens
 
+import com.tasalicool.game.model.Game
+import com.tasalicool.game.model.Team
+import com.tasalicool.game.model.Player
+import com.tasalicool.game.model.Card
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateDpAsState
