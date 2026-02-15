@@ -1,6 +1,6 @@
 package com.tasalicool.game.analytics
 
-import com.tasalicool.game.network.dto.RoundResultDTO
+import com.tasalicool.game.network.RoundResultDTO
 import kotlin.math.abs
 
 /**
