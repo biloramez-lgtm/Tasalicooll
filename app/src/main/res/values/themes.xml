@@ -2,15 +2,13 @@
 <resources>
 
     <style name="Theme.TasalicoolGame"
-        parent="Theme.Material3.DayNight.NoActionBar">
+        parent="Theme.Material3.DayNight">
 
         <!-- Status bar -->
         <item name="android:statusBarColor">@android:color/transparent</item>
-        <item name="android:windowLightStatusBar">true</item>
 
-        <!-- Disable action bar (Compose friendly) -->
-        <item name="windowActionBar">false</item>
-        <item name="windowNoTitle">true</item>
+        <!-- Compose doesn't use ActionBar anyway -->
+        <!-- لا نحتاج windowActionBar أو windowNoTitle مع Material3 -->
 
     </style>
 
