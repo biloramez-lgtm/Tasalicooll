@@ -3,16 +3,16 @@ package com.tasalicool.game.engine
 import com.tasalicool.game.engine.ai.AiEngine
 import com.tasalicool.game.model.*
 import com.tasalicool.game.network.NetworkCommand
+import com.tasalicool.game.rules.BiddingRules
+import com.tasalicool.game.rules.CardRules
+import com.tasalicool.game.rules.ScoringRules
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 class GameEngine {
 
-    // ================= SUB ENGINES =================
+    // ================= RULES =================
 
-    private val cardRules = CardRulesEngine()
-    private val scoringEngine = ScoringEngine()
-    private val biddingEngine = BiddingEngine()
     private val aiEngine = AiEngine()
 
     // ================= STATE =================
@@ -100,17 +100,17 @@ class GameEngine {
 
         val player = game.players[playerIndex]
 
-        if (!biddingEngine.isValidBid(bid, player, game)) {
+        val minBid = BiddingRules.getMinimumBid(
+            game.getTeamByPlayer(player.id)!!.score
+        )
+
+        if (!BiddingRules.isValidBid(bid, player.hand.size, minBid)) {
             emitError("Bid غير صالح")
             return false
         }
 
         player.bid = bid
         game.advanceBidding()
-
-        if (biddingEngine.isBiddingComplete(game)) {
-            game.startPlaying()
-        }
 
         _gameState.value = game
         playAiTurnIfNeeded()
@@ -137,7 +137,7 @@ class GameEngine {
         val player = game.players[playerIndex]
         val trick = game.getOrCreateCurrentTrick()
 
-        if (!cardRules.canPlayCard(card, player, trick)) {
+        if (!CardRules.canPlayCard(card, player, trick)) {
             emitError("كرت غير مسموح")
             return false
         }
@@ -146,7 +146,7 @@ class GameEngine {
         trick.play(playerIndex, card)
 
         if (trick.isComplete(game.players.size)) {
-            val winner = cardRules.calculateTrickWinner(trick)
+            val winner = CardRules.calculateTrickWinner(trick)
             game.endTrick(winner)
 
             if (game.tricks.size == 13) {
@@ -179,7 +179,9 @@ class GameEngine {
     }
 
     private fun handleAiBid(game: Game, player: Player) {
-        val minBid = biddingEngine.getMinimumBid(game)
+        val minBid = BiddingRules.getMinimumBid(
+            game.getTeamByPlayer(player.id)!!.score
+        )
 
         val bid = aiEngine.decideBid(
             hand = player.hand,
@@ -193,7 +195,7 @@ class GameEngine {
 
     private fun handleAiPlay(game: Game, player: Player) {
         val trick = game.getOrCreateCurrentTrick()
-        val validCards = cardRules.getValidPlayableCards(player, trick)
+        val validCards = CardRules.getValidPlayableCards(player, trick)
 
         val card = aiEngine.decideCard(
             hand = player.hand,
@@ -215,7 +217,7 @@ class GameEngine {
     // ================= ROUND END =================
 
     private fun endRound(game: Game) {
-        scoringEngine.applyScores(game)
+        ScoringRules.applyScores(game)
 
         when {
             game.team1.isWinner -> game.endGame(game.team1.id)
@@ -225,79 +227,6 @@ class GameEngine {
                 game.startNextRound()
                 dealCards(game)
             }
-        }
-    }
-
-    // ================= NETWORK SUPPORT (CLIENT CLEAN) =================
-
-    fun onNetworkCommand(command: NetworkCommand) {
-        val game = _gameState.value ?: return
-
-        when (command) {
-
-            is NetworkCommand.TurnChanged -> {
-                val newIndex = game.players.indexOfFirst {
-                    it.id == command.currentPlayerId
-                }
-                if (newIndex != -1) {
-                    game.currentPlayerIndex = newIndex
-                    _gameState.value = game
-                }
-            }
-
-            is NetworkCommand.BidPlaced -> {
-                val playerIndex = game.players.indexOfFirst {
-                    it.id == command.playerId
-                }
-                if (playerIndex != -1) {
-                    game.players[playerIndex].bid = command.bidValue
-                    _gameState.value = game
-                }
-            }
-
-            is NetworkCommand.CardPlayed -> {
-                val playerIndex = game.players.indexOfFirst {
-                    it.id == command.playerId
-                }
-                if (playerIndex == -1) return
-
-                val player = game.players[playerIndex]
-                val card = Card(
-                    suit = Suit.valueOf(command.cardSuit),
-                    rank = Rank.valueOf(command.cardRank)
-                )
-
-                val trick = game.tricks.lastOrNull() ?: return
-
-                player.removeCard(card)
-                trick.play(playerIndex, card)
-
-                _gameState.value = game
-            }
-
-            is NetworkCommand.TrickCompleted -> {
-                val winnerIndex = game.players.indexOfFirst {
-                    it.id == command.winnerPlayerId
-                }
-                if (winnerIndex != -1) {
-                    game.endTrick(winnerIndex)
-                    _gameState.value = game
-                }
-            }
-
-            is NetworkCommand.RoundCompleted -> {
-                game.team1.score = command.team1Score
-                game.team2.score = command.team2Score
-                game.endRound()
-                _gameState.value = game
-            }
-
-            is NetworkCommand.GameEnded -> {
-                game.endGame(command.winningTeamId)
-                _gameState.value = game
-            }
-
-            else -> Unit
         }
     }
 
