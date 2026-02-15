@@ -1,12 +1,7 @@
-<?xml version="1.0" encoding="utf-8"?>  <resources xmlns:tools="http://schemas.android.com/tools">  <style name="Theme.TasalicoolGame" parent="Theme.Material3.DayNight.NoActionBar">  
-    <!-- Primary color -->  
-    <item name="colorPrimary">@color/purple_500</item>  
-    <item name="colorPrimaryVariant">@color/purple_700</item>  
-    <item name="colorOnPrimary">@color/white</item>  
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
 
-    <!-- Status bar -->  
-    <item name="android:statusBarColor">?attr/colorPrimary</item>  
-
-</style>
+    <style name="Theme.TasalicoolGame"
+        parent="Theme.MaterialComponents.DayNight.NoActionBar" />
 
 </resources>
