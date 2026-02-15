@@ -4,12 +4,14 @@ data class Player(
     val id: Int,
     val name: String,
     val isAI: Boolean = false,
-    val position: Int = 0, // ترتيب الجلوس / الدور
-
+    val position: Int = 0,
     var hand: MutableList<Card> = mutableListOf(),
     var score: Int = 0,
     var bid: Int = 0,
-    var tricksWon: Int = 0
+    var tricksWon: Int = 0,
+
+    // ==================== NEW ====================
+    var onPlayCard: ((Card) -> Boolean)? = null
 ) {
 
     /* ================= BIDDING ================= */
@@ -38,6 +40,10 @@ data class Player(
 
     fun sortHand() {
         hand.sortWith(compareBy({ it.suit }, { it.rank.value }))
+    }
+
+    fun playCard(card: Card): Boolean {
+        return onPlayCard?.invoke(card) ?: false
     }
 
     /* ================= ROUND ================= */
