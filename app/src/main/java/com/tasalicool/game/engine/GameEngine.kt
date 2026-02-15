@@ -3,6 +3,7 @@ package com.tasalicool.game.engine
 import com.tasalicool.game.model.*
 import com.tasalicool.game.rules.*
 import com.tasalicool.game.engine.ai.AiEngine
+import com.tasalicool.game.network.NetworkCommand
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -17,6 +18,8 @@ class GameEngine {
 
     private var isNetworkClientMode = false
     fun enableNetworkClientMode() { isNetworkClientMode = true }
+
+    // =================== GAME LOGIC ===================
 
     fun initializeGame(team1: Team, team2: Team, dealerIndex: Int = 0) {
         val players = team1.players + team2.players
@@ -166,4 +169,24 @@ class GameEngine {
 
     private fun emitError(message: String) { _error.value = message }
     fun clearError() { _error.value = null }
+
+    // ================= NETWORK SUPPORT =================
+
+    fun onNetworkCommand(command: NetworkCommand) {
+        when (command) {
+            is NetworkCommand.BidPlaced -> placeBid(findPlayerIndexById(command.playerId), command.bidValue)
+            is NetworkCommand.CardPlayed -> {
+                val playerIndex = findPlayerIndexById(command.playerId)
+                val card = _gameState.value?.players?.get(playerIndex)?.hand?.firstOrNull {
+                    it.rank.name == command.cardRank && it.suit.name == command.cardSuit
+                }
+                if (card != null) playCard(playerIndex, card)
+            }
+            else -> {}
+        }
+    }
+
+    private fun findPlayerIndexById(playerId: String): Int {
+        return _gameState.value?.players?.indexOfFirst { it.id.toString() == playerId } ?: -1
+    }
 }
