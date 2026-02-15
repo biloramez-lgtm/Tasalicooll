@@ -2,14 +2,15 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.serialization")
+    id("com.google.devtools.ksp") // إذا كنت تستخدم Room KSP
 }
 
 android {
-    namespace = "com.klosemiroslave.tasalicooll"
+    namespace = "com.tarneeb.app" // تم تحديث الاسم
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.klosemiroslave.tasalicooll"
+        applicationId = "com.tarneeb.app" // تم تحديث الاسم
         minSdk = 24
         targetSdk = 35
         versionCode = 1
@@ -87,7 +88,7 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.google.code.gson:gson:2.10.1")
 
-    /* ROOM with KSP */
+    // ROOM مع KSP
     implementation("androidx.room:room-runtime:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1")
     ksp("androidx.room:room-compiler:2.6.1")
