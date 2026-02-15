@@ -1,20 +1,43 @@
 package com.tasalicool.game.engine
 
+// ==================== MODEL IMPORTS ====================
 import com.tasalicool.game.model.Game
 import com.tasalicool.game.model.Team
 import com.tasalicool.game.model.Player
 import com.tasalicool.game.model.Card
-import com.tasalicool.game.engine.ai.AiEngine
+import com.tasalicool.game.model.GamePhase
+import com.tasalicool.game.model.Trick
 import com.tasalicool.game.model.*
-import com.tasalicool.game.network.NetworkCommand
+
+// ==================== RULES IMPORTS ====================
 import com.tasalicool.game.rules.BiddingRules
-import com.tasalicool.game.rules.CardRules
-import com.tasalicool.game.rules.ScoringRules
 import com.tasalicool.game.rules.PlayRules
 import com.tasalicool.game.rules.TrickRules
+import com.tasalicool.game.rules.GameRules
+import com.tasalicool.game.rules.RoundRules
+import com.tasalicool.game.rules.ScoreCalculator
+
+// ==================== ENGINE IMPORTS ====================
+import com.tasalicool.game.engine.ai.AiEngine
+
+// ==================== NETWORK IMPORTS ====================
+import com.tasalicool.game.network.NetworkCommand
+
+// ==================== COROUTINES IMPORTS ====================
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
+/**
+ * GameEngine - محرك اللعبة الرئيسي
+ * 
+ * يدير:
+ * - تهيئة اللعبة
+ * - توزيع الأوراق
+ * - إدارة البدية واللعب
+ * - الـ AI
+ * - نهاية الجولات والعبة
+ */
 class GameEngine {
 
     // ================= RULES =================
@@ -44,12 +67,7 @@ class GameEngine {
         team2: Team,
         dealerIndex: Int = 0
     ) {
-        val players = listOf(
-            team1.player1,
-            team2.player1,
-            team1.player2,
-            team2.player2
-        )
+        val players = team1.players + team2.players
 
         val game = Game(
             team1 = team1,
@@ -72,8 +90,8 @@ class GameEngine {
         val p4 = Player(3, "$team2Name-2", isAI = true)
 
         initializeGame(
-            Team(1, team1Name, p1, p3),
-            Team(2, team2Name, p2, p4)
+            Team(1, team1Name, players = listOf(p1, p3)),
+            Team(2, team2Name, players = listOf(p2, p4))
         )
     }
 
@@ -143,7 +161,7 @@ class GameEngine {
         val player = game.players[playerIndex]
         val trick = game.getOrCreateCurrentTrick()
 
-        if (!CardRules.canPlayCard(card, player, trick)) {
+        if (!PlayRules.canPlayCard(card, player, trick)) {
             emitError("كرت غير مسموح")
             return false
         }
@@ -152,7 +170,7 @@ class GameEngine {
         trick.play(playerIndex, card)
 
         if (trick.isComplete(game.players.size)) {
-            val winner = CardRules.calculateTrickWinner(trick)
+            val winner = TrickRules.calculateWinner(trick)
             game.endTrick(winner)
 
             if (game.tricks.size == 13) {
@@ -201,7 +219,7 @@ class GameEngine {
 
     private fun handleAiPlay(game: Game, player: Player) {
         val trick = game.getOrCreateCurrentTrick()
-        val validCards = CardRules.getValidPlayableCards(player, trick)
+        val validCards = PlayRules.getValidCards(player, trick)
 
         val card = aiEngine.decideCard(
             hand = player.hand,
@@ -223,7 +241,8 @@ class GameEngine {
     // ================= ROUND END =================
 
     private fun endRound(game: Game) {
-        ScoringRules.applyScores(game)
+        // TODO: Implement scoring logic
+        // يمكن استخدام ScoreCalculator.getPointsForBid() لحساب النقاط
 
         when {
             game.team1.isWinner -> game.endGame(game.team1.id)
