@@ -123,4 +123,51 @@ data class Game(
             GamePhase.ROUND_END -> "Round End"
             GamePhase.GAME_END  -> "Game Over"
         }
+
+    // ================= TEAM HELPERS =================
+
+    /**
+     * الحصول على فريق اللاعب
+     */
+    fun getTeamByPlayer(playerId: Int): Team? {
+        return when {
+            team1.players.any { it.id == playerId } -> team1
+            team2.players.any { it.id == playerId } -> team2
+            else -> null
+        }
+    }
+
+    /**
+     * الحصول على فريق الخصم
+     */
+    fun getOpponentTeam(playerId: Int): Team? {
+        val playerTeam = getTeamByPlayer(playerId)
+        return when (playerTeam?.id) {
+            team1.id -> team2
+            team2.id -> team1
+            else -> null
+        }
+    }
+
+    // ================= TRICK HELPERS =================
+
+    /**
+     * الحصول على أو إنشاء الخدعة الحالية
+     */
+    fun getOrCreateCurrentTrick(): Trick {
+        var currentTrick = tricks.lastOrNull()
+        
+        if (currentTrick == null || currentTrick.isComplete(players.size)) {
+            currentTrick = Trick()
+            tricks.add(currentTrick)
+        }
+        
+        return currentTrick
+    }
+
+    /**
+     * الخدعة الحالية
+     */
+    val currentTrick: Trick?
+        get() = tricks.lastOrNull()
 }

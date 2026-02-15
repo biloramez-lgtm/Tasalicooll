@@ -75,3 +75,11 @@ val BorderGray = Color(0xFF555555)
 
 val TransparentBlack50 = Color(0x80000000)
 val TransparentWhite50 = Color(0x80FFFFFF)
+
+
+// ============================
+// ALIASES (للتوافق مع الملفات القديمة)
+// ============================
+
+val BackgroundGreen = BackgroundTableGreen  // ✅ alias للون الموجود
+val TextGray = TextLightGray                // ✅ alias للون الموجود
