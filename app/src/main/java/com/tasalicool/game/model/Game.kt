@@ -4,10 +4,6 @@ import java.util.UUID
 
 // ================= ENUMS =================
 
-enum class GamePhase {
-    DEALING, BIDDING, PLAYING, ROUND_END, GAME_END
-}
-
 enum class BiddingPhase {
     WAITING, ACTIVE, FINISHED
 }
