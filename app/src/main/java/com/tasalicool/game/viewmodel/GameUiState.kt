@@ -32,7 +32,31 @@ data class GameUiState(
     val currentTrick: Int = 0
 )
 
+/**
+ * MultiplayerState - State for multiplayer mode
+ */
+enum class MultiplayerState {
+    IDLE,
+    CONNECTING,
+    CONNECTED,
+    HOSTING,
+    PLAYING,
+    DISCONNECTED,
+    ERROR
+}
 
+/**
+ * GameEvent - Events from UI
+ */
+sealed class GameEvent {
+    object CreateRoom : GameEvent()
+    data class JoinRoom(val roomCode: String) : GameEvent()
+    object LeaveRoom : GameEvent()
+    data class PlaceBid(val bid: Int) : GameEvent()
+    data class PlayCard(val cardIndex: Int) : GameEvent()
+    object ConcedGame : GameEvent()
+    object RestartGame : GameEvent()
+}
 
 /**
  * NetworkEvent - Events from network layer
