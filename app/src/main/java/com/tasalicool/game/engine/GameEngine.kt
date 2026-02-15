@@ -83,7 +83,7 @@ class GameEngine {
         }
 
         val player = game.players[playerIndex]
-        val trick = game.getOrCreateCurrentTrick() ?: return false
+        val trick = game.getOrCreateCurrentTrick()
         if (!PlayRules.canPlayCard(card, player, trick)) {
             emitError("كرت غير مسموح")
             return false
@@ -93,8 +93,8 @@ class GameEngine {
         trick.playCard(player, card)
 
         if (trick.isComplete(game.players.size)) {
-            val winnerId = TrickRules.calculateWinner(trick)
-            game.endTrick(winnerId)
+            val winnerTeam = TrickRules.calculateWinner(trick)
+            game.endTrick(winnerTeam)
             if (game.tricks.size == 13) endRound(game)
         } else {
             game.advanceTurn()
@@ -130,7 +130,7 @@ class GameEngine {
     }
 
     private fun handleAiPlay(game: Game, player: Player) {
-        val trick = game.getOrCreateCurrentTrick() ?: return
+        val trick = game.getOrCreateCurrentTrick()
         val validCards = PlayRules.getValidCards(player, trick)
         val card = aiEngine.decideCard(
             hand = player.hand,
