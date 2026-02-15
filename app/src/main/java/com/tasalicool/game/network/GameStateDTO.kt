@@ -1,14 +1,9 @@
 package com.tasalicool.game.network
 
+import com.tasalicool.game.model.*
 import kotlinx.serialization.Serializable
 import java.io.Serializable as JavaSerializable
-import com.tasalicool.game.model.Game
 
-/**
- * GameStateDTO
- * Network Snapshot Only
- * Data Transfer Object - No Game Logic
- */
 @Serializable
 data class GameStateDTO(
 
@@ -58,7 +53,8 @@ data class GameStateDTO(
     companion object {
 
         fun fromGame(game: Game): GameStateDTO {
-            val currentTrick = game.tricks.lastOrNull() ?: game.getOrCreateCurrentTrick()
+            val currentTrick =
+                game.tricks.lastOrNull() ?: game.getOrCreateCurrentTrick()
 
             return GameStateDTO(
                 gameId = game.id,
@@ -68,42 +64,46 @@ data class GameStateDTO(
                 biddingPhase = game.biddingPhase.name,
                 dealerIndex = game.dealerIndex,
                 currentPlayerIndex = game.currentPlayerIndex,
+
                 players = game.players.mapIndexed { index, player ->
                     PlayerDTO.fromPlayer(
                         player = player,
                         position = index,
-                        teamId = if (index in 0..1) game.team1.id else game.team2.id,
+                        teamId = if (index <= 1) game.team1.id else game.team2.id,
                         isCurrentTurn = game.currentPlayerIndex == index,
                         isDealer = game.dealerIndex == index
                     )
                 },
+
                 team1Score = game.team1.score,
                 team2Score = game.team2.score,
                 team1RoundScore = game.team1.players.sumOf { it.score },
                 team2RoundScore = game.team2.players.sumOf { it.score },
-                currentTrickCards = currentTrick.cards.mapValues { CardDTO.fromCard(it.value) },
+
+                currentTrickCards =
+                    currentTrick.cards.mapValues { CardDTO.fromCard(it.value) },
+
                 completedTricks = game.tricks.size,
                 tricks = game.tricks.map { TrickDTO.fromTrick(it) },
+
                 bids = game.players.associate { it.id to it.bid },
+
                 isGameOver = game.isGameOver,
-                winningTeamId = game.winningTeamId,
-                lastUpdateTime = System.currentTimeMillis()
+                winningTeamId = game.winningTeamId
             )
         }
 
-        fun empty(): GameStateDTO {
-            return GameStateDTO(
-                gameId = "",
-                round = 0,
-                currentTrickNumber = 0,
-                gamePhase = "DEALING",
-                biddingPhase = "WAITING",
-                dealerIndex = 0,
-                currentPlayerIndex = 0,
-                players = emptyList(),
-                team1Score = 0,
-                team2Score = 0
-            )
-        }
+        fun empty() = GameStateDTO(
+            gameId = "",
+            round = 0,
+            currentTrickNumber = 0,
+            gamePhase = "DEALING",
+            biddingPhase = "WAITING",
+            dealerIndex = 0,
+            currentPlayerIndex = 0,
+            players = emptyList(),
+            team1Score = 0,
+            team2Score = 0
+        )
     }
 }
