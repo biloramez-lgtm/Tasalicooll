@@ -81,8 +81,8 @@ class ClientGameController(
         multiplayerManager.sendToServer(
             NetworkCommand.CardPlayed(
                 playerId = player.id,
-                cardRank = card.rank.name,
-                cardSuit = card.suit.name
+                cardRank = card.rank.name, // ممكن تغييره حسب توافق Rank مع MultiplayerController
+                cardSuit = card.suit.name  // ممكن تغييره حسب توافق Suit مع MultiplayerController
             )
         )
     }
