@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- الثيم الأساسي للتطبيق -->
-    <style name="Theme.Tasalicooll" parent="Theme.Material3.DayNight.NoActionBar">
+    <!-- الثيم الأساسي لتطبيق Tarneeb -->
+    <style name="Theme.Tarneeb" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- الألوان الأساسية -->
         <item name="colorPrimary">@color/primary</item>
         <item name="colorOnPrimary">@color/onPrimary</item>
