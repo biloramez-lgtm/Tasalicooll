@@ -2,18 +2,28 @@ package com.tasalicool.game.model
 
 import java.util.UUID
 
-/**
- * Game - Orchestrator (STATE ONLY)
- *
- * Holds ONLY game state.
- * No rules, no calculations, no decisions.
- */
+enum class GamePhase {
+    DEALING, BIDDING, PLAYING, ROUND_END, GAME_END
+}
+
+enum class BiddingPhase {
+    WAITING, ACTIVE, FINISHED
+}
+
+enum class GameMode {
+    DEFAULT, CUSTOM
+}
+
 data class Game(
     val id: String = UUID.randomUUID().toString(),
 
     val team1: Team,
     val team2: Team,
-    val players: List<Player>
+    val players: List<Player>,
+
+    var round: Int = 1,
+    var gameMode: GameMode = GameMode.DEFAULT,
+    var duration: Long = 0L
 ) {
 
     // ================= STATE =================
@@ -22,9 +32,6 @@ data class Game(
         private set
 
     var biddingPhase: BiddingPhase = BiddingPhase.WAITING
-        private set
-
-    var currentRound: Int = 1
         private set
 
     var currentTrickNumber: Int = 1
@@ -46,18 +53,31 @@ data class Game(
 
     // ================= GETTERS =================
 
-    fun currentPlayer(): Player =
-        players[currentPlayerIndex]
+    fun currentPlayer(): Player = players[currentPlayerIndex]
 
-    fun dealerPlayer(): Player =
-        players[dealerIndex]
+    fun dealerPlayer(): Player = players[dealerIndex]
 
-    /** اللاعب الذي على يمين الموزّع */
-    fun rightOfDealerIndex(): Int =
-        (dealerIndex + 1) % players.size
+    fun rightOfDealerIndex(): Int = (dealerIndex + 1) % players.size
 
-    fun nextPlayerIndex(): Int =
-        (currentPlayerIndex + 1) % players.size
+    fun nextPlayerIndex(): Int = (currentPlayerIndex + 1) % players.size
+
+    fun getTeamByPlayer(playerId: Int): Team? =
+        if (team1.players.any { it.id == playerId }) team1
+        else if (team2.players.any { it.id == playerId }) team2
+        else null
+
+    fun getOpponentTeam(playerId: Int): Team? =
+        if (team1.players.any { it.id == playerId }) team2
+        else if (team2.players.any { it.id == playerId }) team1
+        else null
+
+    fun getOrCreateCurrentTrick(): Trick {
+        if (tricks.isEmpty() || tricks.last().isComplete(players.size)) {
+            val trick = Trick()
+            tricks.add(trick)
+        }
+        return tricks.last()
+    }
 
     // ================= PHASE TRANSITIONS =================
 
@@ -97,7 +117,7 @@ data class Game(
 
     fun startNextRound() {
         dealerIndex = (dealerIndex + 1) % players.size
-        currentRound++
+        round++
         startDealing()
     }
 
@@ -117,10 +137,10 @@ data class Game(
 
     fun statusText(): String =
         when (gamePhase) {
-            GamePhase.DEALING   -> "Dealing - Round $currentRound"
-            GamePhase.BIDDING   -> "Bidding"
-            GamePhase.PLAYING   -> "Playing - Trick $currentTrickNumber"
+            GamePhase.DEALING -> "Dealing - Round $round"
+            GamePhase.BIDDING -> "Bidding"
+            GamePhase.PLAYING -> "Playing - Trick $currentTrickNumber"
             GamePhase.ROUND_END -> "Round End"
-            GamePhase.GAME_END  -> "Game Over"
+            GamePhase.GAME_END -> "Game Over"
         }
 }
