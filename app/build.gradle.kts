@@ -1,17 +1,15 @@
 plugins {
     id("com.android.application")
-    kotlin("android")
+    id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.serialization")
-    id("com.google.devtools.ksp")
-    id("kotlin-parcelize")
 }
 
 android {
-    namespace = "com.tasalicool.game"
+    namespace = "com.klosemiroslave.tasalicooll"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.tasalicool.game"
+        applicationId = "com.klosemiroslave.tasalicooll"
         minSdk = 24
         targetSdk = 35
         versionCode = 1
