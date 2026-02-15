@@ -93,8 +93,8 @@ class GameEngine {
         trick.playCard(player, card)
 
         if (trick.isComplete(game.players.size)) {
-            val winnerTeam = TrickRules.calculateWinner(trick)
-            game.endTrick(winnerTeam)
+            val winnerIndex = TrickRules.calculateWinner(trick)
+            game.endTrick(winnerIndex)
             if (game.tricks.size == 13) endRound(game)
         } else {
             game.advanceTurn()
