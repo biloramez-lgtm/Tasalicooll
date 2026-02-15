@@ -64,15 +64,16 @@ class MultiplayerGameController(
                 val playerIndex = findPlayerIndex(cmd.playerId)
                 if (playerIndex != -1) {
 
+                    // البحث في اليد عن بطاقة تطابق الـ rank و suit
                     val card = engine.gameState.value
                         ?.players?.get(playerIndex)
-                        ?.hand?.firstOrNull {
-                            it.rank.name == cmd.cardRank &&
-                            it.suit.name == cmd.cardSuit
+                        ?.hand?.firstOrNull { c ->
+                            c.rank.displayName == cmd.cardRank &&
+                            c.suit.getSymbol() == cmd.cardSuit
                         }
 
                     if (card != null) {
-                        engine.playCard(playerIndex, card)
+                        engine.playCard(playerIndex, card) // النوع صحيح الآن: Card
                         sendSync()
                     }
                 }
