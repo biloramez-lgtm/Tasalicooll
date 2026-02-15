@@ -72,7 +72,7 @@ class ClientGameController(
     fun placeBid(bid: Int) {
         val player = _playerInfo.value ?: return
         multiplayerManager.sendToServer(
-            NetworkCommand.BidPlaced(player.id, bid)
+            NetworkCommand.BidPlaced(playerId = player.id, bidValue = bid)
         )
     }
 
@@ -98,14 +98,14 @@ class ClientGameController(
 
     private suspend fun handleNetworkCommand(command: NetworkCommand) {
 
-        // أول شي خلي الـ GameEngine يعالج المنطق
-        gameEngine.onNetworkCommand(command)
+        // معالجة المنطق عبر GameEngine
+        gameEngine.receiveNetworkCommand(command)
 
-        // بعدين حدّث الـ UI حسب نوع الأمر
+        // تحديث UI
         when (command) {
 
             is NetworkCommand.GameStarted -> {
-                val game = gameEngine.currentGame()
+                val game = gameEngine.currentGame
                 _gameState.value = game
                 _gameEvents.emit(GameEvent.GameStarted(game))
             }
@@ -130,8 +130,8 @@ class ClientGameController(
             is NetworkCommand.TrickCompleted -> {
                 _gameEvents.emit(
                     GameEvent.TrickWon(
-                        command.winnerPlayerId,
-                        command.trickNumber
+                        winnerId = command.winnerPlayerId,
+                        trickNumber = command.trickNumber
                     )
                 )
             }
@@ -139,9 +139,9 @@ class ClientGameController(
             is NetworkCommand.RoundCompleted -> {
                 _gameEvents.emit(
                     GameEvent.RoundEnded(
-                        command.roundNumber,
-                        command.team1Score,
-                        command.team2Score
+                        roundNumber = command.roundNumber,
+                        team1Score = command.team1Score,
+                        team2Score = command.team2Score
                     )
                 )
             }
@@ -149,9 +149,9 @@ class ClientGameController(
             is NetworkCommand.GameEnded -> {
                 _gameEvents.emit(
                     GameEvent.GameEnded(
-                        command.winningTeamId,
-                        command.finalScoreTeam1,
-                        command.finalScoreTeam2
+                        winningTeamId = command.winningTeamId,
+                        finalScore1 = command.finalScoreTeam1,
+                        finalScore2 = command.finalScoreTeam2
                     )
                 )
             }
@@ -159,8 +159,8 @@ class ClientGameController(
             is NetworkCommand.ChatMessage -> {
                 _gameEvents.emit(
                     GameEvent.ChatMessage(
-                        command.playerId,
-                        command.message
+                        playerId = command.playerId,
+                        message = command.message
                     )
                 )
             }
