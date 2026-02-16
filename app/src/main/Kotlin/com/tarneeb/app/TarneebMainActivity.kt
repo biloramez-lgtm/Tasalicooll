@@ -24,12 +24,18 @@ import com.tarneeb.ui.*
  * ✅ Theme Configuration
  */
 class TarneebMainActivity : ComponentActivity() {
-    
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        
+        super.onCreate(savedInstanceState) // تأكد من وجود savedInstanceState هنا
         setContent {
-            TarneebApp()
+            // تغليف التطبيق بالثيم لضمان عدم ظهور شاشة سوداء بسبب الألوان
+            TarneebTheme {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    TarneebApp()
+                }
+            }
         }
     }
 }
