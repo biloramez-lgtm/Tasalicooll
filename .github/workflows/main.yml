@@ -27,12 +27,13 @@ jobs:
           cache-disabled: true
 
       - name: Clean Project
-        run: gradle clean --no-daemon --no-build-cache
+        run: ./gradlew clean --no-daemon --no-build-cache
 
       - name: Build Debug APK (Ready To Install)
-        run: gradle :app:assembleDebug --no-daemon --no-build-cache
+        run: ./gradlew :app:assembleDebug --stacktrace --info --no-daemon --no-build-cache
 
       - name: Upload Debug APK
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: tarneeb-debug
