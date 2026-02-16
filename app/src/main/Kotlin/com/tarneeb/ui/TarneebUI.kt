@@ -14,11 +14,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.graphics.Color
 
 // =================== ألوان افتراضية لتجنب TarneebColors ===================
 object DefaultColors {
@@ -35,7 +35,6 @@ object DefaultColors {
 }
 
 // =================== COMPONENTS ===================
-
 @Composable
 fun HomeScreen(
     onSinglePlayerClick: () -> Unit,
@@ -344,7 +343,7 @@ fun CardButton(card: Card, isValid: Boolean = true, onClick: () -> Unit) {
     }
 }
 
-// =================== DIFFICULTY BUTTON (للـ AI أو أي اختيار) ===================
+// =================== DIFFICULTY BUTTON ===================
 @Composable
 fun DifficultyButton(label: String, isSelected: Boolean, onClick: () -> Unit) {
     Button(
@@ -378,7 +377,7 @@ fun ErrorCard(message: String) {
     }
 }
 
-// =================== EXAMPLE OF PREVIEW ===================
+// =================== PREVIEW ===================
 @Composable
 fun PreviewHome() {
     HomeScreen(
