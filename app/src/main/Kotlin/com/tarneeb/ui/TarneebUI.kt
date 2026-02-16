@@ -7,27 +7,34 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.tarneeb.engine.*
-import com.tarneeb.network.NetworkManager
-import com.tarneeb.network.NetworkGameState
-import com.tarneeb.app.*
+import androidx.compose.ui.graphics.Color
 
-// ============================================================================
-// HOME SCREEN
-// ============================================================================
+// =================== ألوان افتراضية لتجنب TarneebColors ===================
+object DefaultColors {
+    val Background = Color(0xFFF5F5F5)
+    val Primary = Color(0xFF6200EE)
+    val Surface = Color.White
+    val TextPrimary = Color.Black
+    val TextSecondary = Color.DarkGray
+    val Success = Color(0xFF4CAF50)
+    val Error = Color(0xFFF44336)
+    val CardRed = Color(0xFFF44336)
+    val CardBlack = Color(0xFF212121)
+    val White = Color.White
+}
+
+// =================== COMPONENTS ===================
 
 @Composable
 fun HomeScreen(
@@ -38,7 +45,7 @@ fun HomeScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(TarneebColors.Background)
+            .background(DefaultColors.Background)
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
@@ -47,7 +54,7 @@ fun HomeScreen(
             text = "🎴 لعبة Tarneeb",
             fontSize = 48.sp,
             fontWeight = FontWeight.Bold,
-            color = TarneebColors.Primary,
+            color = DefaultColors.Primary,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(bottom = 32.dp)
         )
@@ -55,7 +62,7 @@ fun HomeScreen(
         Text(
             text = "اختر طريقة اللعب",
             fontSize = 20.sp,
-            color = TarneebColors.TextSecondary,
+            color = DefaultColors.TextSecondary,
             modifier = Modifier.padding(bottom = 40.dp)
         )
 
@@ -74,7 +81,7 @@ fun MenuButton(icon: String, title: String, subtitle: String, onClick: () -> Uni
             .fillMaxWidth()
             .height(100.dp)
             .clickable { onClick() },
-        colors = CardDefaults.cardColors(containerColor = TarneebColors.Surface),
+        colors = CardDefaults.cardColors(containerColor = DefaultColors.Surface),
         shape = RoundedCornerShape(12.dp)
     ) {
         Row(
@@ -84,35 +91,30 @@ fun MenuButton(icon: String, title: String, subtitle: String, onClick: () -> Uni
         ) {
             Text(text = icon, fontSize = 40.sp, modifier = Modifier.padding(end = 16.dp))
             Column(verticalArrangement = Arrangement.Center) {
-                Text(title, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TarneebColors.TextPrimary)
-                Text(subtitle, fontSize = 14.sp, color = TarneebColors.TextSecondary)
+                Text(title, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = DefaultColors.TextPrimary)
+                Text(subtitle, fontSize = 14.sp, color = DefaultColors.TextSecondary)
             }
         }
     }
 }
 
-// ============================================================================
-// SINGLE PLAYER SETUP
-// ============================================================================
-
 @Composable
-fun SinglePlayerSetupScreen(onStart: (String, AIDifficulty) -> Unit, onBack: () -> Unit) {
+fun SinglePlayerSetupScreen(onStart: (String) -> Unit, onBack: () -> Unit) {
     var playerName by remember { mutableStateOf("") }
-    var selectedDifficulty by remember { mutableStateOf(AIDifficulty.MEDIUM) }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(TarneebColors.Background)
+            .background(DefaultColors.Background)
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         Row(modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "رجوع", tint = TarneebColors.Primary) }
+            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "رجوع", tint = DefaultColors.Primary) }
         }
 
-        Text("لعبة فردية", fontSize = 32.sp, fontWeight = FontWeight.Bold, color = TarneebColors.Primary, modifier = Modifier.padding(bottom = 32.dp))
+        Text("لعبة فردية", fontSize = 32.sp, fontWeight = FontWeight.Bold, color = DefaultColors.Primary, modifier = Modifier.padding(bottom = 32.dp))
 
         OutlinedTextField(
             value = playerName,
@@ -120,68 +122,58 @@ fun SinglePlayerSetupScreen(onStart: (String, AIDifficulty) -> Unit, onBack: () 
             label = { Text("اسمك") },
             modifier = Modifier.fillMaxWidth(0.8f).padding(bottom = 24.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedTextColor = TarneebColors.TextPrimary,
-                unfocusedTextColor = TarneebColors.TextSecondary
+                focusedTextColor = DefaultColors.TextPrimary,
+                unfocusedTextColor = DefaultColors.TextSecondary
             )
         )
 
-        Text("مستوى الصعوبة", fontSize = 18.sp, color = TarneebColors.TextPrimary, modifier = Modifier.fillMaxWidth(0.8f).padding(bottom = 12.dp))
-
-        Row(modifier = Modifier.fillMaxWidth(0.8f).padding(bottom = 32.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
-            AIDifficulty.values().forEach { diff ->
-                DifficultyButton(diff, diff == selectedDifficulty) { selectedDifficulty = diff }
-            }
-        }
-
         Button(
-            onClick = { if (playerName.isNotEmpty()) onStart(playerName, selectedDifficulty) },
+            onClick = { if (playerName.isNotEmpty()) onStart(playerName) },
             modifier = Modifier.fillMaxWidth(0.6f).height(50.dp),
             enabled = playerName.isNotEmpty(),
-            colors = ButtonDefaults.buttonColors(containerColor = TarneebColors.Primary, disabledContainerColor = TarneebColors.TextSecondary)
+            colors = ButtonDefaults.buttonColors(containerColor = DefaultColors.Primary, disabledContainerColor = DefaultColors.TextSecondary)
         ) { Text("ابدأ اللعبة", fontSize = 18.sp) }
     }
 }
 
 @Composable
-fun DifficultyButton(difficulty: AIDifficulty, isSelected: Boolean, onClick: () -> Unit) {
-    Button(
-        onClick = onClick,
-        modifier = Modifier.height(40.dp),
-        colors = ButtonDefaults.buttonColors(containerColor = if (isSelected) TarneebColors.Primary else TarneebColors.Surface)
+fun CenterText(text: String) {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
     ) {
-        Text(
-            text = when (difficulty) {
-                AIDifficulty.EASY -> "سهل"
-                AIDifficulty.MEDIUM -> "متوسط"
-                AIDifficulty.HARD -> "صعب"
-            }
-        )
+        Text(text, fontSize = 24.sp, color = DefaultColors.TextPrimary)
     }
 }
 
-// ============================================================================
-// MULTIPLAYER SETUP
-// ============================================================================
-
+// =================== MULTIPLAYER SETUP ===================
 @Composable
-fun MultiplayerSetupScreen(onStart: (List<String>, AIDifficulty) -> Unit, onBack: () -> Unit) {
+fun MultiplayerSetupScreen(onStart: (List<String>) -> Unit, onBack: () -> Unit) {
     var playerCount by remember { mutableStateOf(2) }
     var playerNames by remember { mutableStateOf(List(4) { "" }) }
-    var selectedDifficulty by remember { mutableStateOf(AIDifficulty.MEDIUM) }
 
-    Column(modifier = Modifier.fillMaxSize().background(TarneebColors.Background).padding(24.dp)) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(DefaultColors.Background)
+            .padding(24.dp)
+    ) {
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "رجوع", tint = TarneebColors.Primary) }
+            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "رجوع", tint = DefaultColors.Primary) }
         }
 
-        Text("لعبة محلية", fontSize = 32.sp, fontWeight = FontWeight.Bold, color = TarneebColors.Primary, modifier = Modifier.padding(bottom = 24.dp))
+        Text("لعبة محلية", fontSize = 32.sp, fontWeight = FontWeight.Bold, color = DefaultColors.Primary, modifier = Modifier.padding(bottom = 24.dp))
 
         LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             item {
-                Text("عدد اللاعبين", fontSize = 18.sp, color = TarneebColors.TextPrimary)
+                Text("عدد اللاعبين", fontSize = 18.sp, color = DefaultColors.TextPrimary)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(vertical = 8.dp)) {
                     (2..4).forEach { count ->
-                        FilterChip(selected = playerCount == count, onClick = { playerCount = count }, label = { Text("$count لاعبين") })
+                        FilterChip(
+                            selected = playerCount == count,
+                            onClick = { playerCount = count },
+                            label = { Text("$count لاعبين") }
+                        )
                     }
                 }
             }
@@ -192,46 +184,40 @@ fun MultiplayerSetupScreen(onStart: (List<String>, AIDifficulty) -> Unit, onBack
                     label = { Text("لاعب ${index + 1}") },
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = TarneebColors.TextPrimary,
-                        unfocusedTextColor = TarneebColors.TextSecondary
+                        focusedTextColor = DefaultColors.TextPrimary,
+                        unfocusedTextColor = DefaultColors.TextSecondary
                     )
                 )
-            }
-            item {
-                Text("مستوى الصعوبة (للـ AI)", fontSize = 18.sp, color = TarneebColors.TextPrimary, modifier = Modifier.padding(top = 16.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(vertical = 8.dp)) {
-                    AIDifficulty.values().forEach { diff ->
-                        DifficultyButton(diff, diff == selectedDifficulty) { selectedDifficulty = diff }
-                    }
-                }
             }
         }
 
         Button(
-            onClick = { val valid = playerNames.take(playerCount).filter { it.isNotEmpty() }; if (valid.size == playerCount) onStart(valid, selectedDifficulty) },
+            onClick = { val valid = playerNames.take(playerCount); if (valid.size == playerCount) onStart(valid) },
             modifier = Modifier.fillMaxWidth().height(50.dp),
             enabled = playerNames.take(playerCount).all { it.isNotEmpty() },
-            colors = ButtonDefaults.buttonColors(containerColor = TarneebColors.Primary)
+            colors = ButtonDefaults.buttonColors(containerColor = DefaultColors.Primary)
         ) { Text("ابدأ اللعبة", fontSize = 18.sp) }
     }
 }
 
-// ============================================================================
-// NETWORK SETUP
-// ============================================================================
-
+// =================== NETWORK SETUP ===================
 @Composable
-fun NetworkSetupScreen(networkManager: NetworkManager, onJoinGame: (String, String) -> Unit, onCreateGame: (String) -> Unit, onBack: () -> Unit) {
+fun NetworkSetupScreen(onJoinGame: (String, String) -> Unit, onCreateGame: (String) -> Unit, onBack: () -> Unit) {
     var playerName by remember { mutableStateOf("") }
     var gameCode by remember { mutableStateOf("") }
     var showJoinForm by remember { mutableStateOf(false) }
 
-    Column(modifier = Modifier.fillMaxSize().background(TarneebColors.Background).padding(24.dp)) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(DefaultColors.Background)
+            .padding(24.dp)
+    ) {
         Row(modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "رجوع", tint = TarneebColors.Primary) }
+            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "رجوع", tint = DefaultColors.Primary) }
         }
 
-        Text("لعبة أونلاين", fontSize = 32.sp, fontWeight = FontWeight.Bold, color = TarneebColors.Primary, modifier = Modifier.padding(bottom = 32.dp))
+        Text("لعبة أونلاين", fontSize = 32.sp, fontWeight = FontWeight.Bold, color = DefaultColors.Primary, modifier = Modifier.padding(bottom = 32.dp))
 
         OutlinedTextField(
             value = playerName,
@@ -239,126 +225,165 @@ fun NetworkSetupScreen(networkManager: NetworkManager, onJoinGame: (String, Stri
             label = { Text("اسمك") },
             modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedTextColor = TarneebColors.TextPrimary,
-                unfocusedTextColor = TarneebColors.TextSecondary
+                focusedTextColor = DefaultColors.TextPrimary,
+                unfocusedTextColor = DefaultColors.TextSecondary
             )
         )
 
         if (!showJoinForm) {
-            Button(onClick = { if (playerName.isNotEmpty()) onCreateGame(playerName) }, modifier = Modifier.fillMaxWidth().height(50.dp), enabled = playerName.isNotEmpty(), colors = ButtonDefaults.buttonColors(containerColor = TarneebColors.Success)) { Text("إنشاء لعبة جديدة", fontSize = 18.sp) }
+            Button(
+                onClick = { if (playerName.isNotEmpty()) onCreateGame(playerName) },
+                modifier = Modifier.fillMaxWidth().height(50.dp),
+                enabled = playerName.isNotEmpty(),
+                colors = ButtonDefaults.buttonColors(containerColor = DefaultColors.Success)
+            ) { Text("إنشاء لعبة جديدة", fontSize = 18.sp) }
+
             Spacer(modifier = Modifier.height(16.dp))
-            Button(onClick = { showJoinForm = true }, modifier = Modifier.fillMaxWidth().height(50.dp), colors = ButtonDefaults.buttonColors(containerColor = TarneebColors.Primary)) { Text("الانضمام لعبة موجودة", fontSize = 18.sp) }
+
+            Button(
+                onClick = { showJoinForm = true },
+                modifier = Modifier.fillMaxWidth().height(50.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = DefaultColors.Primary)
+            ) { Text("الانضمام لعبة موجودة", fontSize = 18.sp) }
         } else {
-            OutlinedTextField(value = gameCode, onValueChange = { gameCode = it }, label = { Text("كود اللعبة") }, modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp), colors = OutlinedTextFieldDefaults.colors(focusedTextColor = TarneebColors.TextPrimary, unfocusedTextColor = TarneebColors.TextSecondary))
-            Button(onClick = { if (playerName.isNotEmpty() && gameCode.isNotEmpty()) onJoinGame(gameCode, playerName) }, modifier = Modifier.fillMaxWidth().height(50.dp), enabled = playerName.isNotEmpty() && gameCode.isNotEmpty(), colors = ButtonDefaults.buttonColors(containerColor = TarneebColors.Primary)) { Text("انضم", fontSize = 18.sp) }
+            OutlinedTextField(
+                value = gameCode,
+                onValueChange = { gameCode = it },
+                label = { Text("كود اللعبة") },
+                modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = DefaultColors.TextPrimary,
+                    unfocusedTextColor = DefaultColors.TextSecondary
+                )
+            )
+
+            Button(
+                onClick = { if (playerName.isNotEmpty() && gameCode.isNotEmpty()) onJoinGame(gameCode, playerName) },
+                modifier = Modifier.fillMaxWidth().height(50.dp),
+                enabled = playerName.isNotEmpty() && gameCode.isNotEmpty(),
+                colors = ButtonDefaults.buttonColors(containerColor = DefaultColors.Primary)
+            ) { Text("انضم", fontSize = 18.sp) }
+
             Spacer(modifier = Modifier.height(8.dp))
-            Button(onClick = { showJoinForm = false }, modifier = Modifier.fillMaxWidth().height(50.dp), colors = ButtonDefaults.buttonColors(containerColor = TarneebColors.Surface)) { Text("رجوع", fontSize = 18.sp) }
+
+            Button(
+                onClick = { showJoinForm = false },
+                modifier = Modifier.fillMaxWidth().height(50.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = DefaultColors.Surface)
+            ) { Text("رجوع", fontSize = 18.sp) }
         }
     }
 }
 
-// ============================================================================
-// GAME SCREEN
-// ============================================================================
-
+// =================== GAME SCREEN ===================
 @Composable
-fun GameScreen(engine: EngineGod, gameState: TarneebGame?, error: String?, aiAction: AIAction?, onBack: () -> Unit) {
-    if (gameState == null) {
-        CenterText("جارٍ التحضير...")
-        return
-    }
-
-    Column(modifier = Modifier.fillMaxSize().background(TarneebColors.Background).padding(8.dp)) {
-        GameHeader(gameState, onBack)
-
-        when (gameState.gamePhase) {
-            GamePhase.BIDDING -> BiddingPhaseUI(engine, gameState, aiAction)
-            GamePhase.PLAYING -> PlayingPhaseUI(engine, gameState, aiAction)
-            GamePhase.ROUND_END -> RoundEndPhaseUI(gameState, engine)
-            GamePhase.GAME_END -> GameEndPhaseUI(gameState)
-            else -> CenterText("جارٍ التحضير...")
+fun GameScreen(onBack: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(DefaultColors.Background)
+            .padding(8.dp)
+    ) {
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "رجوع", tint = DefaultColors.Primary) }
         }
 
-        error?.let {
-            Card(modifier = Modifier.fillMaxWidth().padding(8.dp), colors = CardDefaults.cardColors(containerColor = TarneebColors.Error)) {
-                Text(text = it, color = TarneebColors.White, modifier = Modifier.padding(12.dp), fontSize = 14.sp)
-            }
-        }
+        CenterText("هنا ستظهر اللعبة (GameScreen)")
     }
 }
 
-// ============================================================================
-// PLAYING & BIDDING PHASES
-// ============================================================================
-
-@Composable
-fun BiddingPhaseUI(engine: EngineGod, gameState: TarneebGame, aiAction: AIAction?) {
-    gameState.currentPlayer?.let { currentPlayer ->
-        Column(modifier = Modifier.fillMaxSize().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-            Text("دور ${currentPlayer.name}", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = TarneebColors.TextPrimary, modifier = Modifier.padding(bottom = 24.dp))
-
-            if (currentPlayer.isAI) {
-                CircularProgressIndicator(color = TarneebColors.Primary)
-                Text("الـ AI يختار البدية...", color = TarneebColors.TextSecondary, modifier = Modifier.padding(top = 16.dp))
-                (aiAction as? AIAction.PlacingBid)?.let { Text("📢 بدية: ${it.bid}", color = TarneebColors.Secondary, fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 16.dp)) }
-            } else {
-                LazyVerticalGrid(columns = GridCells.Fixed(4), modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items((2..13).toList()) { bid ->
-                        Button(onClick = { engine.placeBid(currentPlayer.id, bid) }, modifier = Modifier.height(48.dp), colors = ButtonDefaults.buttonColors(containerColor = TarneebColors.Primary)) {
-                            Text(bid.toString())
-                        }
-                    }
-                }
-            }
-        }
-    } ?: CenterText("جارٍ التحضير...")
+// =================== CARD VIEW & CARD BUTTON ===================
+enum class Suit(val symbol: String) {
+    HEARTS("♥"),
+    DIAMONDS("♦"),
+    CLUBS("♣"),
+    SPADES("♠")
 }
 
-@Composable
-fun PlayingPhaseUI(engine: EngineGod, gameState: TarneebGame, aiAction: AIAction?) {
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        gameState.currentTrick?.let { currentTrick ->
-            Text("الخدعة ${gameState.currentTrickNumber}/13", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TarneebColors.Primary, modifier = Modifier.padding(bottom = 12.dp))
-            Row(modifier = Modifier.fillMaxWidth().padding(8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                currentTrick.cardsPlayed.forEach { (_, card) -> CardView(card) }
-            }
-        }
-
-        Spacer(modifier = Modifier.weight(1f))
-
-        gameState.currentPlayer?.let { currentPlayer ->
-            Text("دور: ${currentPlayer.name}", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TarneebColors.TextPrimary, modifier = Modifier.padding(bottom = 12.dp))
-
-            if (currentPlayer.isAI) {
-                CircularProgressIndicator(color = TarneebColors.Primary)
-                Text("الـ AI يفكر...", color = TarneebColors.TextSecondary, modifier = Modifier.padding(top = 12.dp))
-                (aiAction as? AIAction.PlayingCard)?.let { Text("🃏 ${it.card}", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TarneebColors.Secondary, modifier = Modifier.padding(top = 12.dp)) }
-            } else {
-                val validCards = engine.getValidCards(currentPlayer.id)
-                LazyVerticalGrid(columns = GridCells.Fixed(4), modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    items(currentPlayer.hand) { card ->
-                        CardButton(card, isValid = validCards.contains(card)) { engine.playCard(currentPlayer.id, card) }
-                    }
-                }
-            }
-        } ?: CenterText("جارٍ التحضير...")
-    }
-}
-
-// ============================================================================
-// UTILITY COMPONENTS (CardView, CardButton, ScoreCard, etc.)
-// ============================================================================
+data class Card(val rank: String, val suit: Suit)
 
 @Composable
 fun CardView(card: Card) {
-    Card(modifier = Modifier.width(60.dp).height(90.dp), colors = CardDefaults.cardColors(containerColor = if (card.suit == Suit.HEARTS || card.suit == Suit.DIAMONDS) TarneebColors.CardRed else TarneebColors.CardBlack), shape = RoundedCornerShape(8.dp)) {
-        Column(modifier = Modifier.fillMaxSize().padding(4.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-            Text(card.rank.display, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-            Text(card.suit.symbol, fontSize = 14.sp)
+    Card(
+        modifier = Modifier.width(60.dp).height(90.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (card.suit == Suit.HEARTS || card.suit == Suit.DIAMONDS) DefaultColors.CardRed else DefaultColors.CardBlack
+        ),
+        shape = RoundedCornerShape(8.dp)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize().padding(4.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(card.rank, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = DefaultColors.White)
+            Text(card.suit.symbol, fontSize = 14.sp, color = DefaultColors.White)
         }
     }
 }
 
 @Composable
-fun CardButton(card: Card, isValid: Boolean, onClick: () -> Unit) {
-    Button(onClick = onClick, enabled = isValid, modifier = Modifier.width(60.dp).height(90.dp), colors = ButtonDefaults.buttonColors(containerColor = if (card.suit == Suit.HE
+fun CardButton(card: Card, isValid: Boolean = true, onClick: () -> Unit) {
+    Button(
+        onClick = onClick,
+        enabled = isValid,
+        modifier = Modifier.width(60.dp).height(90.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = if (card.suit == Suit.HEARTS || card.suit == Suit.DIAMONDS) DefaultColors.CardRed else DefaultColors.CardBlack,
+            disabledContainerColor = Color.Gray
+        )
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(card.rank, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = DefaultColors.White)
+            Text(card.suit.symbol, fontSize = 14.sp, color = DefaultColors.White)
+        }
+    }
+}
+
+// =================== DIFFICULTY BUTTON (للـ AI أو أي اختيار) ===================
+@Composable
+fun DifficultyButton(label: String, isSelected: Boolean, onClick: () -> Unit) {
+    Button(
+        onClick = onClick,
+        modifier = Modifier.height(40.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = if (isSelected) DefaultColors.Primary else DefaultColors.Surface
+        )
+    ) {
+        Text(label, color = if (isSelected) DefaultColors.White else DefaultColors.TextPrimary)
+    }
+}
+
+// =================== UTILITY COMPONENTS ===================
+@Composable
+fun CenterBox(content: @Composable BoxScope.() -> Unit) {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center,
+        content = content
+    )
+}
+
+@Composable
+fun ErrorCard(message: String) {
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(8.dp),
+        colors = CardDefaults.cardColors(containerColor = DefaultColors.Error)
+    ) {
+        Text(text = message, color = DefaultColors.White, modifier = Modifier.padding(12.dp), fontSize = 14.sp)
+    }
+}
+
+// =================== EXAMPLE OF PREVIEW ===================
+@Composable
+fun PreviewHome() {
+    HomeScreen(
+        onSinglePlayerClick = {},
+        onMultiplayerClick = {},
+        onNetworkClick = {}
+    )
+}
