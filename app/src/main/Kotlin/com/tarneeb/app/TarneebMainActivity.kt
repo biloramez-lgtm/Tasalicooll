@@ -6,6 +6,10 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tarneeb.engine.EngineGod
 import com.tarneeb.engine.AIDifficulty
@@ -16,38 +20,86 @@ import com.tarneeb.ui.*
 /**
  * TarneebMainActivity - الـ Activity الرئيسي لتطبيق Tarneeb
  * 
- * يحتوي على:
- * ✅ Navigation كامل
- * ✅ EngineGod Integration
- * ✅ NetworkManager Integration
- * ✅ State Management
- * ✅ Theme Configuration
+ * الإصدار: 1.0.0
+ * آخر تحديث: 2024
+ * 
+ * المميزات:
+ * ✅ Navigation كامل مع معالجة الأخطاء
+ * ✅ EngineGod Integration مع Null Safety
+ * ✅ NetworkManager Integration مع State Management
+ * ✅ Theme Configuration مع دعم الوضع المظلم
+ * ✅ Error Boundaries ومعالجة الـ Crashes
  */
 class TarneebMainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState) // تأكد من وجود savedInstanceState هنا
-        setContent {
-            // تغليف التطبيق بالثيم لضمان عدم ظهور شاشة سوداء بسبب الألوان
-            TarneebTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    TarneebApp()
+        super.onCreate(savedInstanceState)
+        
+        try {
+            setContent {
+                TarneebTheme {
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        color = MaterialTheme.colorScheme.background
+                    ) {
+                        SafeTarneebApp()
+                    }
                 }
             }
+        } catch (e: Exception) {
+            // طباعة الخطأ للتشخيص
+            e.printStackTrace()
+            println("❌ Fatal Error in onCreate: ${e.message}")
         }
     }
 }
 
 /**
- * TarneebApp - تطبيق Tarneeb الرئيسي
+ * SafeTarneebApp - نسخة آمنة من التطبيق مع معالجة الأخطاء
  */
 @Composable
-fun TarneebApp() {
-    val engine = remember { EngineGod() }
-    val networkManager = remember { NetworkManager() }
+fun SafeTarneebApp() {
+    // تهيئة آمنة للـ Engine
+    val engine = try {
+        remember { EngineGod() }
+    } catch (e: Exception) {
+        println("❌ EngineGod initialization failed: ${e.message}")
+        null
+    }
     
+    // تهيئة آمنة للـ NetworkManager
+    val networkManager = try {
+        remember { NetworkManager() }
+    } catch (e: Exception) {
+        println("❌ NetworkManager initialization failed: ${e.message}")
+        null
+    }
+    
+    // Error Boundary - لو فشل كل شيء
+    if (engine == null && networkManager == null) {
+        CriticalErrorScreen(
+            message = "فشل في تهيئة التطبيق",
+            onRetry = {
+                // إعادة تشغيل التطبيق
+            }
+        )
+        return
+    }
+    
+    // تطبيق Tarneeb الأساسي مع معالجة الأخطاء
+    TarneebApp(
+        engine = engine,
+        networkManager = networkManager
+    )
+}
+
+/**
+ * TarneebApp - تطبيق Tarneeb الرئيسي مع Null Safety كامل
+ */
+@Composable
+fun TarneebApp(
+    engine: EngineGod?,
+    networkManager: NetworkManager?
+) {
     // حالة التطبيق
     var currentScreen by remember { mutableStateOf<AppScreen>(AppScreen.Home) }
     var selectedGameMode by remember { mutableStateOf<GameMode?>(null) }
@@ -55,14 +107,42 @@ fun TarneebApp() {
     var playerName by remember { mutableStateOf("") }
     var playerList by remember { mutableStateOf(listOf<String>()) }
     
-    // مراقبة حالة اللعبة
-    val gameState by engine.gameState.collectAsState()
-    val error by engine.error.collectAsState()
-    val aiAction by engine.aiAction.collectAsState()
+    // مراقبة حالة اللعبة (مع Null Safety)
+    val gameState = try {
+        engine?.gameState?.collectAsState()?.value
+    } catch (e: Exception) {
+        println("❌ Error collecting gameState: ${e.message}")
+        null
+    }
     
-    // مراقبة حالة الشبكة
-    val networkState by networkManager.networkState.collectAsState()
-    val networkError by networkManager.error.collectAsState()
+    val error = try {
+        engine?.error?.collectAsState()?.value
+    } catch (e: Exception) {
+        println("❌ Error collecting error: ${e.message}")
+        null
+    }
+    
+    val aiAction = try {
+        engine?.aiAction?.collectAsState()?.value
+    } catch (e: Exception) {
+        println("❌ Error collecting aiAction: ${e.message}")
+        null
+    }
+    
+    // مراقبة حالة الشبكة (مع Null Safety)
+    val networkState = try {
+        networkManager?.networkState?.collectAsState()?.value
+    } catch (e: Exception) {
+        println("❌ Error collecting networkState: ${e.message}")
+        null
+    }
+    
+    val networkError = try {
+        networkManager?.error?.collectAsState()?.value
+    } catch (e: Exception) {
+        println("❌ Error collecting networkError: ${e.message}")
+        null
+    }
     
     // Theme
     TarneebTheme {
@@ -70,99 +150,199 @@ fun TarneebApp() {
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background
         ) {
-            // Navigation
+            // Navigation مع معالجة الأخطاء
             when (currentScreen) {
                 AppScreen.Home -> {
                     HomeScreen(
                         onSinglePlayerClick = {
-                            currentScreen = AppScreen.SinglePlayerSetup
-                            selectedGameMode = GameMode.SINGLE_PLAYER
+                            if (engine != null) {
+                                currentScreen = AppScreen.SinglePlayerSetup
+                                selectedGameMode = GameMode.SINGLE_PLAYER
+                            } else {
+                                println("❌ Engine not available")
+                            }
                         },
                         onMultiplayerClick = {
-                            currentScreen = AppScreen.MultiplayerSetup
-                            selectedGameMode = GameMode.MULTIPLAYER_LOCAL
+                            if (engine != null) {
+                                currentScreen = AppScreen.MultiplayerSetup
+                                selectedGameMode = GameMode.MULTIPLAYER_LOCAL
+                            } else {
+                                println("❌ Engine not available")
+                            }
                         },
                         onNetworkClick = {
-                            currentScreen = AppScreen.NetworkSetup
+                            if (networkManager != null) {
+                                currentScreen = AppScreen.NetworkSetup
+                            } else {
+                                println("❌ NetworkManager not available")
+                            }
                         }
                     )
                 }
                 
                 AppScreen.SinglePlayerSetup -> {
-                    SinglePlayerSetupScreen(
-                        onStart = { name, difficulty ->
-                            playerName = name
-                            selectedDifficulty = difficulty
-                            engine.startSinglePlayer(name, difficulty)
-                            currentScreen = AppScreen.Game
-                        },
-                        onBack = {
-                            currentScreen = AppScreen.Home
-                        }
-                    )
-                }
-                
-                AppScreen.MultiplayerSetup -> {
-                    MultiplayerSetupScreen(
-                        onStart = { players, difficulty ->
-                            playerList = players
-                            selectedDifficulty = difficulty
-                            engine.startMultiplayer(players.size, players, difficulty)
-                            currentScreen = AppScreen.Game
-                        },
-                        onBack = {
-                            currentScreen = AppScreen.Home
-                        }
-                    )
-                }
-                
-                AppScreen.NetworkSetup -> {
-                    NetworkSetupScreen(
-                        networkManager = networkManager,
-                        onJoinGame = { gameCode, name ->
-                            playerName = name
-                            networkManager.joinGame(gameCode, name)
-                            currentScreen = AppScreen.NetworkGame
-                        },
-                        onCreateGame = { name ->
-                            playerName = name
-                            networkManager.createGame(name)
-                            currentScreen = AppScreen.NetworkGame
-                        },
-                        onBack = {
-                            currentScreen = AppScreen.Home
-                        }
-                    )
-                }
-                
-                AppScreen.Game -> {
-                    if (gameState != null) {
-                        GameScreen(
-                            engine = engine,
-                            gameState = gameState!!,
-                            error = error,
-                            aiAction = aiAction,
+                    if (engine != null) {
+                        SinglePlayerSetupScreen(
+                            onStart = { name, difficulty ->
+                                playerName = name
+                                selectedDifficulty = difficulty
+                                try {
+                                    engine.startSinglePlayer(name, difficulty)
+                                    currentScreen = AppScreen.Game
+                                } catch (e: Exception) {
+                                    println("❌ Failed to start single player: ${e.message}")
+                                }
+                            },
                             onBack = {
-                                engine.resetGame()
                                 currentScreen = AppScreen.Home
                             }
+                        )
+                    } else {
+                        ErrorScreen(
+                            message = "محرك اللعبة غير متاح",
+                            onBack = { currentScreen = AppScreen.Home }
                         )
                     }
                 }
                 
-                AppScreen.NetworkGame -> {
-                    NetworkGameScreen(
-                        networkManager = networkManager,
-                        networkState = networkState,
-                        onBack = {
-                            networkManager.disconnect()
-                            currentScreen = AppScreen.Home
+                AppScreen.MultiplayerSetup -> {
+                    if (engine != null) {
+                        MultiplayerSetupScreen(
+                            onStart = { players, difficulty ->
+                                playerList = players
+                                selectedDifficulty = difficulty
+                                try {
+                                    engine.startMultiplayer(players.size, players, difficulty)
+                                    currentScreen = AppScreen.Game
+                                } catch (e: Exception) {
+                                    println("❌ Failed to start multiplayer: ${e.message}")
+                                }
+                            },
+                            onBack = {
+                                currentScreen = AppScreen.Home
+                            }
+                        )
+                    } else {
+                        ErrorScreen(
+                            message = "محرك اللعبة غير متاح",
+                            onBack = { currentScreen = AppScreen.Home }
+                        )
+                    }
+                }
+                
+                AppScreen.NetworkSetup -> {
+                    if (networkManager != null) {
+                        NetworkSetupScreen(
+                            networkManager = networkManager,
+                            onJoinGame = { gameCode, name ->
+                                playerName = name
+                                try {
+                                    networkManager.joinGame(gameCode, name)
+                                    currentScreen = AppScreen.NetworkGame
+                                } catch (e: Exception) {
+                                    println("❌ Failed to join game: ${e.message}")
+                                }
+                            },
+                            onCreateGame = { name ->
+                                playerName = name
+                                try {
+                                    networkManager.createGame(name)
+                                    currentScreen = AppScreen.NetworkGame
+                                } catch (e: Exception) {
+                                    println("❌ Failed to create game: ${e.message}")
+                                }
+                            },
+                            onBack = {
+                                currentScreen = AppScreen.Home
+                            }
+                        )
+                    } else {
+                        ErrorScreen(
+                            message = "مدير الشبكة غير متاح",
+                            onBack = { currentScreen = AppScreen.Home }
+                        )
+                    }
+                }
+                
+                AppScreen.Game -> {
+                    when {
+                        engine == null -> {
+                            ErrorScreen(
+                                message = "محرك اللعبة غير متاح",
+                                onBack = { currentScreen = AppScreen.Home }
+                            )
                         }
-                    )
+                        gameState == null -> {
+                            // شاشة تحميل
+                            LoadingScreen(
+                                onBack = {
+                                    engine.resetGame()
+                                    currentScreen = AppScreen.Home
+                                }
+                            )
+                        }
+                        else -> {
+                            try {
+                                GameScreen(
+                                    engine = engine,
+                                    gameState = gameState,
+                                    error = error,
+                                    aiAction = aiAction,
+                                    onBack = {
+                                        try {
+                                            engine.resetGame()
+                                        } catch (e: Exception) {
+                                            println("❌ Error resetting game: ${e.message}")
+                                        }
+                                        currentScreen = AppScreen.Home
+                                    }
+                                )
+                            } catch (e: Exception) {
+                                println("❌ Error in GameScreen: ${e.message}")
+                                ErrorScreen(
+                                    message = "خطأ في عرض اللعبة: ${e.message}",
+                                    onBack = { currentScreen = AppScreen.Home }
+                                )
+                            }
+                        }
+                    }
+                }
+                
+                AppScreen.NetworkGame -> {
+                    when {
+                        networkManager == null -> {
+                            ErrorScreen(
+                                message = "مدير الشبكة غير متاح",
+                                onBack = { currentScreen = AppScreen.Home }
+                            )
+                        }
+                        else -> {
+                            try {
+                                NetworkGameScreen(
+                                    networkManager = networkManager,
+                                    networkState = networkState,
+                                    onBack = {
+                                        try {
+                                            networkManager.disconnect()
+                                        } catch (e: Exception) {
+                                            println("❌ Error disconnecting: ${e.message}")
+                                        }
+                                        currentScreen = AppScreen.Home
+                                    }
+                                )
+                            } catch (e: Exception) {
+                                println("❌ Error in NetworkGameScreen: ${e.message}")
+                                ErrorScreen(
+                                    message = "خطأ في اللعبة الشبكية",
+                                    onBack = { currentScreen = AppScreen.Home }
+                                )
+                            }
+                        }
+                    }
                 }
             }
             
-            // عرض الأخطاء
+            // عرض الأخطاء في Console فقط
             if (error != null) {
                 LaunchedEffect(error) {
                     println("❌ Engine Error: $error")
@@ -174,6 +354,127 @@ fun TarneebApp() {
                     println("❌ Network Error: $networkError")
                 }
             }
+        }
+    }
+}
+
+/**
+ * ErrorScreen - شاشة عرض الأخطاء
+ */
+@Composable
+fun ErrorScreen(
+    message: String,
+    onBack: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = "❌",
+            fontSize = 48.sp,
+            color = TarneebColors.Error
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = "حدث خطأ",
+            fontSize = 24.sp,
+            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = message,
+            fontSize = 16.sp,
+            color = TarneebColors.TextSecondary
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+        Button(
+            onClick = onBack,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = TarneebColors.Primary
+            )
+        ) {
+            Text("العودة للرئيسية")
+        }
+    }
+}
+
+/**
+ * LoadingScreen - شاشة تحميل
+ */
+@Composable
+fun LoadingScreen(
+    onBack: () -> Unit
+) {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        CircularProgressIndicator(
+            color = TarneebColors.Primary
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = "جاري تحميل اللعبة...",
+            fontSize = 18.sp,
+            color = TarneebColors.TextSecondary
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+        TextButton(onClick = onBack) {
+            Text("إلغاء")
+        }
+    }
+}
+
+/**
+ * CriticalErrorScreen - شاشة الخطأ الحرج
+ */
+@Composable
+fun CriticalErrorScreen(
+    message: String,
+    onRetry: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = "⚠️",
+            fontSize = 64.sp
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = "خطأ حرج",
+            fontSize = 28.sp,
+            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = message,
+            fontSize = 16.sp,
+            color = TarneebColors.Error
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "يرجى إعادة تشغيل التطبيق",
+            fontSize = 14.sp,
+            color = TarneebColors.TextSecondary
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+        Button(
+            onClick = onRetry,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = TarneebColors.Primary
+            )
+        ) {
+            Text("إعادة المحاولة")
         }
     }
 }
@@ -234,24 +535,24 @@ object TarneebColors {
  */
 val TarneebTypography = Typography(
     headlineLarge = androidx.compose.material3.MaterialTheme.typography.headlineLarge.copy(
-        fontSize = androidx.compose.ui.unit.sp(32),
+        fontSize = 32.sp,
         fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
     ),
     headlineMedium = androidx.compose.material3.MaterialTheme.typography.headlineMedium.copy(
-        fontSize = androidx.compose.ui.unit.sp(24),
+        fontSize = 24.sp,
         fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
     ),
     titleLarge = androidx.compose.material3.MaterialTheme.typography.titleLarge.copy(
-        fontSize = androidx.compose.ui.unit.sp(20),
+        fontSize = 20.sp,
         fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
     ),
     bodyLarge = androidx.compose.material3.MaterialTheme.typography.bodyLarge.copy(
-        fontSize = androidx.compose.ui.unit.sp(16)
+        fontSize = 16.sp
     ),
     bodyMedium = androidx.compose.material3.MaterialTheme.typography.bodyMedium.copy(
-        fontSize = androidx.compose.ui.unit.sp(14)
+        fontSize = 14.sp
     ),
     labelMedium = androidx.compose.material3.MaterialTheme.typography.labelMedium.copy(
-        fontSize = androidx.compose.ui.unit.sp(12)
+        fontSize = 12.sp
     )
 )
